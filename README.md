@@ -3,7 +3,7 @@ ESP32 Audio SDK with Deepbrain Could
 
 ## Overview
 
-![Block diagram] (./docs/ESP32%E8%BD%AF%E4%BB%B6%E6%9E%B6%E6%9E%84.jpg) 
+![Block diagram] (./docs/ESP32软件架构.jpg) 
 
 ## ESP32 Resources
 
