@@ -1,0 +1,65 @@
+menu "ESP Audio App"
+
+config ENABLE_OTA_SERVICE
+    bool "Enable the OTA service"
+    default n
+    help
+        Enable ota service, it will need wifi enable.
+
+config ENABLE_DLNA_SERVICE
+    bool "Enable the DLNA service"
+    default y
+    help
+        Enable DLNA service.
+
+config ENABLE_DUEROS_SERVICE
+    bool "Enable the DuerOS service"
+    default n
+    help
+        Enable DuerOS service.
+
+config ENABLE_TURINGAIWIFI_SERVICE
+    bool "Enable the turingaiwifi service"
+    default n
+    help
+        Enable turingaiwifi service.
+
+config ENABLE_TURING_WAKEUP
+    bool "Enable near field wakeup"
+    default n
+    depends on ENABLE_TURINGAIWIFI_SERVICE
+    help
+       enable near field wakeup function for turing AIWIFI service
+
+config ENABLE_TURINGWECHAT_SERVICE
+    bool "Enable the turingwechat service"
+    default n
+    help
+        Enable turingwechat service.
+
+config ENABLE_SMART_CONFIG
+    bool "Enable the smart config method"
+    default n
+    help
+        Enable smart config.
+
+
+config ENABLE_BLE_CONFIG
+    bool "Enable the ble config method"
+    depends on BLUEDROID_ENABLED
+    default n
+    help
+        Enable ble config.
+
+config ESP_AUDIO_WIFI_SSID
+    string "WI-FI SSID"
+    default "Your SSID"
+    help
+        Add WIFI SSID.
+config ESP_AUDIO_WIFI_PWD
+    string "WI-FI password"
+    default "Your password"
+    help
+        Add WIFI password.
+
+endmenu

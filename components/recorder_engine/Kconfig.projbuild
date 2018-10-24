@@ -1,0 +1,40 @@
+menu "Speech Recognition Configuration"
+
+choice Speech_Recognition_Engine
+    prompt "Speech Recognition Engine"
+    default SR_TYPE_ESPRESSIF
+    help
+        Select speech recognition engine
+
+config SR_TYPE_ESPRESSIF
+    bool "Espressif wakeup engine"
+
+config SR_TYPE_SNOWBOY
+    bool "Snowboy wakeup engine"
+endchoice
+
+
+choice Name_Of_Wakeup_Word
+    prompt "Name Of Wakeup Word"
+    default WAKEUP_WORD_NAME_HI_LEXIN
+    help
+        Select wakeup word
+
+config WAKEUP_WORD_NAME_XIAODU
+    bool "Wakeup word is XiaoDu XiaoDu"
+
+config WAKEUP_WORD_NAME_HI_LEXIN
+    bool "Wakeup word is Hi Lexin"
+    depends on SR_TYPE_ESPRESSIF
+
+config WAKEUP_WORD_NAME_ALEXA
+    bool "Wakeup word is Alexa"
+    depends on SR_TYPE_ESPRESSIF
+
+config WAKEUP_WORD_NAME_HAOGE
+    bool "Wakeup word is HaoGe HaoGe"
+    depends on SR_TYPE_ESPRESSIF
+
+endchoice
+
+endmenu

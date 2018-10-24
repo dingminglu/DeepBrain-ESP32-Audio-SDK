@@ -1,0 +1,9 @@
+#ifndef MEMORY_CONFIG_H
+#define MEMORY_CONFIG_H
+
+//DRAM内存配置
+#define SDRAM_START_ADDR 0x60000000
+#define SDRAM_TOTAL_SIZE 1024*1024*2
+
+#endif
+

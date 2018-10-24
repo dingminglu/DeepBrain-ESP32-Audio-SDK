@@ -1,0 +1,7 @@
+#
+# Component Makefile
+
+COMPONENT_ADD_INCLUDEDIRS := include
+LIBS := esp-dlna
+COMPONENT_ADD_LDFLAGS := $(COMPONENT_PATH)/lib/libesp-dlna.a
+COMPONENT_ADD_LINKER_DEPS := $(patsubst %,$(COMPONENT_PATH)/lib/lib%.a,$(LIBS))

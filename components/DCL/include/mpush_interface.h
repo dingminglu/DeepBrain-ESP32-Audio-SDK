@@ -1,0 +1,21 @@
+#ifndef MPUSH_INTERFACE_H
+#define MPUSH_INTERFACE_H
+
+//推送消息类型
+typedef enum MPUSH_MSG_TYPE_t
+{
+	MPUSH_SEND_MSG_TYPE_NONE = 0,
+	MPUSH_SEND_MSG_TYPE_TEXT,
+	MPUSH_SEND_MSG_TYPE_FILE,
+	MPUSH_SEND_MSG_TYPE_LINK,
+	MPUSH_SEND_MSG_TYPE_CMD,
+}MPUSH_MSG_TYPE_t;
+
+//推送信息
+typedef struct MPUSH_CLIENT_MSG_INFO_t
+{
+	MPUSH_MSG_TYPE_t msg_type;
+	char msg_content[2048];
+}MPUSH_CLIENT_MSG_INFO_t;
+
+#endif
