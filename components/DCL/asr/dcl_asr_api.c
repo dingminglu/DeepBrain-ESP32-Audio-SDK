@@ -20,7 +20,6 @@
 #include "adpcm-lib.h"
 #include "socket.h"
 #include "cJSON.h"
-#include "device_params_manage.h"
 #include "debug_log_interface.h"
 #include "memory_interface.h"
 #include "time_interface.h"

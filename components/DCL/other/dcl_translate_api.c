@@ -19,9 +19,9 @@
 #include "auth_crypto.h"
 #include "socket.h"
 #include "cJSON.h"
-#include "userconfig.h"
-#include "device_params_manage.h"
+#include "memory_interface.h"
 #include "debug_log_interface.h"
+#include "time_interface.h"
 
 #define PARAMS_CHINESE			"中文"
 #define PARAMS_ENGLISH			"英语"
@@ -336,24 +336,5 @@ dcl_get_translate_text_error:
 	}
 	
 	return err_code;
-}
-
-void unit_test_dcl_get_translate_text(DCL_TRANSLATE_MODE_t translate_mode, const char* const input_text)
-{
-	DCL_AUTH_PARAMS_t input_params = {0};
-	char translate_text[1024] = {0};
-
-	snprintf(input_params.str_app_id, sizeof(input_params.str_app_id), "%s", DEEP_BRAIN_APP_ID);
-	snprintf(input_params.str_robot_id, sizeof(input_params.str_robot_id), "%s", DEEP_BRAIN_ROBOT_ID);
-	get_flash_cfg(FLASH_CFG_DEVICE_ID, &input_params.str_device_id);
-	
-	if (dcl_get_translate_text(translate_mode, &input_params, input_text, translate_text, sizeof(translate_text)) == DCL_ERROR_CODE_OK)
-	{
-		DEBUG_LOGI(TAG_LOG, "translate text:[%s]", translate_text);
-	}
-	else
-	{
-		DEBUG_LOGE(TAG_LOG, "dcl_get_translate_text failed");
-	}
 }
 

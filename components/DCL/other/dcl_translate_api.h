@@ -37,8 +37,6 @@ typedef struct DCL_TRANSLATE_HANDLE_t
 	DCL_TRANSLATE_MODE_PARAMS_t translate_params;
 }DCL_TRANSLATE_HANDLE_t;
 
-void unit_test_dcl_get_translate_text(DCL_TRANSLATE_MODE_t translate_mode, const char* const input_text);
-
 DCL_ERROR_CODE_t dcl_get_translate_text(
 	DCL_TRANSLATE_MODE_t translate_mode,
 	const DCL_AUTH_PARAMS_t* const input_params,

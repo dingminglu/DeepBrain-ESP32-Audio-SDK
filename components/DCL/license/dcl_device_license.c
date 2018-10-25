@@ -18,7 +18,6 @@
 #include "auth_crypto.h"
 #include "socket.h"
 #include "cJSON.h"
-#include "device_params_manage.h"
 #include "debug_log_interface.h"
 #include "dcl_common_interface.h"
 #include "dcl_device_license.h"
