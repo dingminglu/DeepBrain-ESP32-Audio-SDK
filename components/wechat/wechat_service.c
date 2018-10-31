@@ -8,6 +8,7 @@
 #include "mpush_service.h" 
 #include "asr_service.h"
 #include "aip_interface.h"
+#include "dcl_mpush_push_msg.h"
 
 #define LOG_TAG "wechat service"
 
@@ -20,6 +21,8 @@ typedef struct WECHAT_SERVICE_HANDLE_t
 	int total_send_count;		//总发送次数
 	int total_send_fail_count;	//发送失败次数
 	int total_send_ok_count;	//发送成功次数
+
+	DCL_AUTH_PARAMS_t dcl_auth_params;
 
 	//缓存队列
 	TAILQ_HEAD(WECHAT_UPLOAD_CACHE_QUEUE_t, WECHAT_SEND_MSG_t) upload_cache_queue;
@@ -495,11 +498,12 @@ static void wechat_event_callback(
 			{
 				DEBUG_LOGE(LOG_TAG, "wechat_amrnb_encode failed");
 			}
-			
-			uint64_t encode_time = get_time_of_day();
+
 			//微聊推送
-			ret = mpush_service_send_file(msg_obj->amrnb_data,msg_obj->amrnb_data_len, msg_obj->asr_result_text, "amr", "");
-			if (ret == MPUSH_ERROR_SEND_MSG_OK)
+			uint64_t encode_time = get_time_of_day();
+			get_dcl_auth_params(&handle->dcl_auth_params);
+			ret = dcl_mpush_push_msg(&handle->dcl_auth_params, msg_obj->amrnb_data, msg_obj->amrnb_data_len, msg_obj->asr_result_text, "");
+			if (ret == DCL_ERROR_CODE_OK)
 			{
 				audio_play_tone_mem(FLASH_MUSIC_SEND_SUCCESS, TERMINATION_TYPE_NOW);
 				DEBUG_LOGI(LOG_TAG, "mpush_service_send_file success"); 

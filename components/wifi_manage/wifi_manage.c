@@ -126,7 +126,7 @@ int get_wifi_manage_status(void)
 	SEMPHR_TRY_LOCK(g_lock_wifi_manage);
 	status = g_wifi_manage_handle->status;
 	SEMPHR_TRY_UNLOCK(g_lock_wifi_manage);
-	DEBUG_LOGE(LOG_TAG, "get_wifi_manage_status[%d]", status);
+	//DEBUG_LOGE(LOG_TAG, "get_wifi_manage_status[%d]", status);
 	
 	return status;
 }
@@ -526,7 +526,16 @@ static bool stop_wifi_smartconfig_mode(void)
  */
 static bool wifi_connect(const DEVICE_WIFI_INFO_T *wifi_info)
 {
-	wifi_config_t w_config = {0};
+	wifi_config_t w_config = 
+	{
+		.sta = 
+		{
+	        .ssid = "",
+	        .password = "",
+	        .bssid_set = false
+        }
+    };
+	
 
 	if (wifi_info == NULL)
 	{
@@ -542,12 +551,6 @@ static bool wifi_connect(const DEVICE_WIFI_INFO_T *wifi_info)
 		DEBUG_LOGE(LOG_TAG, "esp_wifi_set_config failed");
 		return false;
 	} 
-	
-	if (esp_wifi_start() != ESP_OK)
-	{
-		DEBUG_LOGE(LOG_TAG, "esp_wifi_start failed");
-		return false;
-	}
 
 	if (esp_wifi_connect() != ESP_OK)
 	{

@@ -258,7 +258,7 @@ void app_startup(MediaService *service)
 	asr_service_create(TASK_PRIORITY_1);
 
 	//11.wifi manage
-	wifi_manage_create(TASK_PRIORITY_1);
+	wifi_manage_create(TASK_PRIORITY_5);
 
 	//12.aip service create
 	aip_service_create(TASK_PRIORITY_1);

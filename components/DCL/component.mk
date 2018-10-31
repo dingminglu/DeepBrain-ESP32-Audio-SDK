@@ -7,8 +7,8 @@
 # please read the SDK documents if you need to do this.
 #
 
-COMPONENT_ADD_INCLUDEDIRS := . include asr authorization nlp tts utility mpush other
+COMPONENT_ADD_INCLUDEDIRS := . include asr authorization nlp tts utility mpush other license
 
-COMPONENT_SRCDIRS :=  . include asr authorization nlp tts utility mpush other
+COMPONENT_SRCDIRS :=  . include asr authorization nlp tts utility mpush other license
 
 # include $(IDF_PATH)/make/component_common.mk

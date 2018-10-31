@@ -38,8 +38,8 @@ typedef struct
 //total 128 bytes
 typedef struct
 {
-	int64_t file_offset;	//音频文件在文件夹中的偏移量	
-	char res[120];			//剩余可用
+	int64_t file_offset;		//文件在文件夹中的偏移量	
+	char res[120];				//剩余可用
 }SD_FILE_UNIT_t;
 
 //total 64 bytes
@@ -102,36 +102,23 @@ static unsigned char * get_sd_folder_name(int _index)
 //判断文件格式是否有效
 static bool is_valid_music_name(const char *_music_name)
 {
-	char *str_name = (char *)memory_malloc(128);
-	
-	if (NULL == str_name)
+	if (_music_name == NULL)
 	{
 		return false;
 	}
-	memset(str_name, 0, 128);
+	
+	char str_name[256] = {0};
 
-	snprintf(str_name, 128, "%s", _music_name);
+	snprintf(str_name, 256, "%s", _music_name);
 	strlwr(str_name);
 	if (strstr(str_name, ".m4a") != NULL
 		|| strstr(str_name, ".flac") != NULL
 		|| strstr(str_name, ".amr") != NULL
-		|| strstr(str_name, ".mp3") != NULL
-		|| strstr(str_name, ".wav") != NULL)
+		|| strstr(str_name, ".mp3") != NULL)
 	{
-		if (NULL != str_name)
-		{
-			memory_free(str_name);
-			str_name = NULL;
-		}
 		return true;
 	}
 		
-	if (NULL != str_name)
-	{
-		memory_free(str_name);
-		str_name = NULL;
-	}
-	
 	return false;
 }
 
@@ -246,7 +233,7 @@ static void play_folder_name(SD_PLAY_LIST_HEADER_t *play_list_header)
 	{
 		play_list_header->need_play_folder_index_num = FOLDER_INDEX_BAIKE;
 	}
-
+		
 	switch (play_list_header->need_play_folder_index_num)	//播放文件夹名称
 	{
 		case FOLDER_INDEX_BAIKE:
@@ -297,7 +284,7 @@ static void play_folder_name(SD_PLAY_LIST_HEADER_t *play_list_header)
 		default:
 			break;
 	}
-	task_thread_sleep(1400);//使文件夹名称播完
+	task_thread_sleep(2200);//使文件夹名称播完
 }
 
 //打开文件夹及相应错误处理
@@ -342,7 +329,12 @@ static bool sd_music_get_music_url(
 
 	SD_PLAY_LIST_INFO_t *play_list_info = &handle->play_list_info;
 	int32_t need_play_folder_index_num = handle->play_list_info.play_list_header.need_play_folder_index_num;
-	
+
+	if (play_list_info->folder_index[need_play_folder_index_num].file_offset < OFFSET_INITIAL_VALUE 
+		|| play_list_info->folder_index[need_play_folder_index_num].file_offset > FAT32_MAX_FILE_SIZE)//判断偏移量是否在有效范围
+	{
+		play_list_info->folder_index[need_play_folder_index_num].file_offset = OFFSET_INITIAL_VALUE;
+	}
 	seekdir(handle->p_dir, play_list_info->folder_index[need_play_folder_index_num].file_offset);
 	handle->p_dir_node = readdir(handle->p_dir);
 	if (handle->p_dir_node == NULL)
@@ -356,54 +348,50 @@ static bool sd_music_get_music_url(
 		}
 	}
 
-	if (!is_valid_music_name(handle->p_dir_node->d_name))
+	while (!is_valid_music_name(handle->p_dir_node->d_name))
 	{//文件格式不正确时
-		do
+		sd_music_get_music_url_p_dir_node_null:
+		if (direction == SEARCHING_DIRECTION_PREV)
 		{
-			if (direction == SEARCHING_DIRECTION_PREV)
-			{
-				play_list_info->folder_index[need_play_folder_index_num].file_offset--;//检查上一个文件格式
-			}
-			else
-			{
-				play_list_info->folder_index[need_play_folder_index_num].file_offset++;//检查下一个文件格式
-			}
+			play_list_info->folder_index[need_play_folder_index_num].file_offset--;//检查上一个文件格式
+		}
+		else
+		{
+			play_list_info->folder_index[need_play_folder_index_num].file_offset++;//检查下一个文件格式
+		}
+		
+		if (play_list_info->folder_index[need_play_folder_index_num].file_offset < OFFSET_INITIAL_VALUE 
+			|| play_list_info->folder_index[need_play_folder_index_num].file_offset > FAT32_MAX_FILE_SIZE)//判断偏移量是否在有效范围
+		{
+			play_list_info->folder_index[need_play_folder_index_num].file_offset = OFFSET_INITIAL_VALUE;
+		}
+		seekdir(handle->p_dir, play_list_info->folder_index[need_play_folder_index_num].file_offset);
 			
-			if (play_list_info->folder_index[need_play_folder_index_num].file_offset < OFFSET_INITIAL_VALUE 
-				|| play_list_info->folder_index[need_play_folder_index_num].file_offset > FAT32_MAX_FILE_SIZE)//判断偏移量是否在有效范围
-			{
-				play_list_info->folder_index[need_play_folder_index_num].file_offset = OFFSET_INITIAL_VALUE;
-			}
-				
-			seekdir(handle->p_dir, play_list_info->folder_index[need_play_folder_index_num].file_offset);
-			handle->p_dir_node = readdir(handle->p_dir);
-			if (handle->p_dir_node == NULL)
-			{//文件为空时
-				if (frequency >= 2)
-				{//判定文件夹为空
-					return false;
-				}
-				
-				play_list_info->folder_index[need_play_folder_index_num].file_offset = -1;//使偏移回到文件夹开头（配合下一步操作）
-				frequency++;
-				continue;
-			}
-			
-			i++;//往后顺延20个文件
-			
-			if (i >= 20)
-			{
+		handle->p_dir_node = readdir(handle->p_dir);
+		if (handle->p_dir_node == NULL)
+		{//文件为空时
+			if (frequency >= 2)
+			{//判定文件夹为空
 				return false;
 			}
 			
-		}while (!is_valid_music_name(handle->p_dir_node->d_name));
+			play_list_info->folder_index[need_play_folder_index_num].file_offset = -1;//使偏移回到文件夹开头（配合下一步操作）
+			frequency++;
+			goto sd_music_get_music_url_p_dir_node_null;
+		}
+		
+		i++;//往后顺延20个文件
+		if (i >= 20)
+		{
+			return false;
+		}
 	}
 
 	snprintf(handle->music_url, sizeof(handle->music_url),
 		"file:///sdcard/%s/%s", 
 		get_sd_folder_name(play_list_info->play_list_header.need_play_folder_index_num),
 		handle->p_dir_node->d_name);
-	
+
 	return true;
 }
 
@@ -412,6 +400,13 @@ static bool sd_music_creat_playlist(char *music_url)
 {
 	void *playlist = NULL;
 	PLAYLIST_CALL_BACKS_t call_back = {sd_music_prev, sd_music_next};
+	
+	if (playlist_clear() != APP_FRAMEWORK_ERRNO_OK)
+	{
+		DEBUG_LOGE(LOG_TAG, "playlist_clear failed");
+	}
+	audio_play_stop();
+	task_thread_sleep(100);
 	
 	if (new_playlist(&playlist) != APP_FRAMEWORK_ERRNO_OK)
 	{
@@ -452,6 +447,13 @@ static void sd_music_switching_audio(SD_MUSIC_OPT_MODE_t opt_mode)
 	SD_MUSIC_MANAGE_HANDLE_t *handle = g_sd_music_handle;	
 	SEARCHING_DIRECTION_t direction = SEARCHING_DIRECTION_NEXT;
 	static int first_start_flag = 0;
+
+	task_thread_sleep(150);
+	if (is_audio_playing())
+	{
+		audio_play_pause();//停止音乐
+		task_thread_sleep(200);
+	}
 	
 	if (!is_sdcard_inserted())	//判断有无SD卡
 	{
@@ -484,11 +486,6 @@ static void sd_music_switching_audio(SD_MUSIC_OPT_MODE_t opt_mode)
 	
 	if (!sd_music_open_dir(handle))//打开文件夹系列处理
 	{
-		if (is_audio_playing())
-		{
-			audio_play_pause();//停止音乐
-		}
-		
 		audio_play_tone_mem(FLASH_MUSIC_DYY_ERROR_PLEASE_TRY_AGAIN_LATER, AUDIO_TERM_TYPE_NOW);
 		goto sd_music_switching_audio_err_3;
 	}
@@ -497,7 +494,7 @@ static void sd_music_switching_audio(SD_MUSIC_OPT_MODE_t opt_mode)
 	{
 		case SD_MUSIC_OPT_MODE_PREV:
 		{
-			play_list_info->folder_index[need_play_folder_index_num].file_offset--;//切换到下一个文件
+			play_list_info->folder_index[need_play_folder_index_num].file_offset--;//切换到上一个文件
 			direction = SEARCHING_DIRECTION_PREV;
 			break;
 		}
@@ -518,11 +515,6 @@ static void sd_music_switching_audio(SD_MUSIC_OPT_MODE_t opt_mode)
 
 	if(!sd_music_get_music_url(handle, direction))//获取音频URL
 	{
-		if (is_audio_playing())
-		{
-			audio_play_pause();//停止音乐
-		}
-		
 		audio_play_tone_mem(FLASH_MUSIC_NO_MUSIC, AUDIO_TERM_TYPE_NOW);
 		goto sd_music_switching_audio_err_1;
 	}
@@ -531,11 +523,6 @@ static void sd_music_switching_audio(SD_MUSIC_OPT_MODE_t opt_mode)
 	{
 		if (!sd_music_creat_playlist(handle->music_url))
 		{
-			if (is_audio_playing())
-			{
-				audio_play_pause();//停止音乐
-			}
-			
 			audio_play_tone_mem(FLASH_MUSIC_DYY_ERROR_PLEASE_TRY_AGAIN_LATER, AUDIO_TERM_TYPE_NOW);
 			goto sd_music_switching_audio_err_2;
 		}

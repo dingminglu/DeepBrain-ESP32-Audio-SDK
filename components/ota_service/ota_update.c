@@ -297,11 +297,13 @@ static OTA_ERROR_NUM_T ota_update_data_from_server(
 	DEBUG_LOGE(OTA_TAG, "header=%s\n", socket_data->header);
 	
     bool pkg_body_start = false;
-	uint32_t play_tone_time = time(NULL);
+	//uint32_t play_tone_time = time(NULL);
 	
     /*deal with all receive packet*/
     while (1) 
 	{
+	
+#if 0
 		if (abs(play_tone_time - time(NULL)) >= 5)
 		{
 			play_tone_time = time(NULL);
@@ -309,6 +311,8 @@ static OTA_ERROR_NUM_T ota_update_data_from_server(
 		}
 	
 		vTaskDelay(5);//避免完全占用cpu，导致提示音无法播报
+#endif
+
         memset(socket_data->str_buf, 0, sizeof(socket_data->str_buf));
         int buff_len = sock_readn_with_timeout(socket_data->sock, socket_data->str_buf, sizeof(socket_data->str_buf) - 1, 5000);
         if (buff_len < 0 && (errno == EINTR || errno == EAGAIN))

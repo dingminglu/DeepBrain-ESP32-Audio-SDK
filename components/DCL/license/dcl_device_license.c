@@ -21,6 +21,8 @@
 #include "debug_log_interface.h"
 #include "dcl_common_interface.h"
 #include "dcl_device_license.h"
+#include "time_interface.h"
+#include "memory_interface.h"
 
 /*
 硬件终端获取平台授权接口 ：使用原来的sn生成接口，其中请求字段增加type字段，返回体增加deviceType、deviceId、deviceLicense字段，接口内容如下：
@@ -371,7 +373,7 @@ DCL_ERROR_CODE_t dcl_get_device_license(
 		DEBUG_LOGE(TAG_LOG, "dlc_dev_license_make_packet failed");
 		goto dcl_get_device_license_error;
 	}
-	DEBUG_LOGI(TAG_LOG, "%s", http_buffer->str_request);
+	//DEBUG_LOGI(TAG_LOG, "%s", http_buffer->str_request);
 
 	//发包
 	if (sock_writen_with_timeout(http_buffer->sock, http_buffer->str_request, strlen(http_buffer->str_request), 1000) != strlen(http_buffer->str_request)) 

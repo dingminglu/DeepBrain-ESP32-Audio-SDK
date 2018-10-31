@@ -333,7 +333,10 @@ get_memo_result_error:
 //初始化时钟
 static void init_clock(MEMO_SERVICE_HANDLE_T *handle)
 {
-	while(get_net_time());
+	if (get_net_time())
+	{
+		return;
+	}
 
 	//校准系统时钟
  	struct timeval tv = { 

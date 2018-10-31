@@ -65,6 +65,18 @@
 #define DCL_ASR_API_URL "http://asr.deepbrain.ai/open-api/asr/recognise"
 #endif
 
+#ifdef DCL_DEMO_MODE
+#define MPUSH_GET_SERVER_URL 		"http://192.168.20.91:9034/open-api/testFetchMessageServers"
+#define MPUSH_SEND_MSG_URL 	 		"http://192.168.20.91:9034/open-api/testSendMessage"
+#define MPUSH_GET_OFFLINE_MSG_URL 	"http://192.168.20.91:9034/open-api/testFetchOfflineMessage"
+#endif
+
+#ifdef DCL_NORMAL_MODE
+#define MPUSH_GET_SERVER_URL 		"http://message.deepbrain.ai:9134/open-api/testFetchMessageServers"
+#define MPUSH_SEND_MSG_URL 	 		"http://message.deepbrain.ai:9134/open-api/testSendMessage"
+#define MPUSH_GET_OFFLINE_MSG_URL 	"http://message.deepbrain.ai:9134/open-api/testFetchOfflineMessage"	
+#endif
+
 /* http buffer */
 typedef struct DCL_HTTP_BUFFER_t
 {

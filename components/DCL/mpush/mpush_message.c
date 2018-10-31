@@ -122,8 +122,7 @@ void _mpush_make_packet(
 void mpush_make_bind_user_msg(
 	char *_out_buf,
 	size_t *_out_len,
-	MPUSH_MSG_CONFIG_T *_config,
-	mbedtls_rsa_context *_rsa)
+	MPUSH_MSG_CONFIG_T *_config)
 {
 	MPUSH_MSG_HEADER_T head = {0};
 	MPUSH_MSG_BIND_T msg_bind_user;
@@ -185,8 +184,7 @@ void mpush_make_ack_msg(
 void mpush_make_handshake_msg(
 	char *_out_buf,
 	size_t *_out_len,
-	MPUSH_MSG_CONFIG_T *_config,
-	mbedtls_rsa_context *_rsa)
+	MPUSH_MSG_CONFIG_T *_config)
 {
 	MPUSH_MSG_HEADER_T head = {0};
 	MPUSH_MSG_HANDSHAKE_T msg_handshake;
@@ -222,8 +220,7 @@ void mpush_make_handshake_msg(
 void mpush_encode_push_msg(
 	char *_out_buf,
 	size_t *_out_len,
-	MPUSH_MSG_CONFIG_T *_config,
-	mbedtls_rsa_context *_rsa)
+	MPUSH_MSG_CONFIG_T *_config)
 {
 	MPUSH_MSG_HEADER_T head = {0};
 	MPUSH_MSG_HANDSHAKE_T msg_handshake;

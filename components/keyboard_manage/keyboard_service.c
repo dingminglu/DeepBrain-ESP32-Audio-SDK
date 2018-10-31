@@ -55,14 +55,12 @@ typedef struct KEYBOARD_SERVICE_HANDLE_T
 }KEYBOARD_SERVICE_HANDLE_T;
 
 static KEYBOARD_SERVICE_HANDLE_T *g_keyboard_service_handle = NULL;
-KEYBOARD_OBJ_T *g_keyboard_obj1 = NULL;
-//KEYBOARD_OBJ_T *g_keyboard_obj2 = NULL;
+KEYBOARD_OBJ_T *g_keyboard_obj = NULL;
 
 void adc_key_init(void)
 {
     //Configure ADC
     adc1_config_width(ADC_WIDTH_BIT_12);
-    //adc1_config_channel_atten(ADC_CHANNEL_0, ADC_ATTEN_DB_11);
 	adc1_config_channel_atten(ADC_CHANNEL_3, ADC_ATTEN_DB_11);
 
     //Characterize ADC
@@ -71,7 +69,7 @@ void adc_key_init(void)
 
 void keyboard_init(void)
 {
-	KEYBOARD_CFG_T keyboard_cfg1 = {
+	KEYBOARD_CFG_T keyboard_cfg = {
 		.key_num        = 7,   //按键数量	
 		.fault_tol      = 80, //容错值
 		.scan_cycle     = 40 , //扫描周期ms
@@ -87,8 +85,13 @@ void keyboard_init(void)
 		},
 		.keyboard[2] = {//按键K2
 			.adc_value   = 475,
-			.sigleclick  = KEY_EVENT_CHAT_START,
-			//.longpress   = KEY_EVENT_CHILD_LOCK,
+#if FREE_TALK_CONTINUE_MODE
+			.sigleclick  = KEY_EVENT_FREE_TALK_CONTINUE,
+#else
+			.push        = KEY_EVENT_CHAT_START,
+			.release     = KEY_EVENT_CHAT_STOP,
+#endif
+			.longpress   = KEY_EVENT_CHILD_LOCK,
 		},
 		.keyboard[3] = {//按键K3
 			.adc_value   = 850,
@@ -107,61 +110,22 @@ void keyboard_init(void)
 		},
 		.keyboard[6] = {//按键K6
 			.adc_value   = 1980,				
-			//.longpress   = KEY_EVENT_HEAD_LED_SWITCH,
+			.longpress   = KEY_EVENT_HEAD_LED_SWITCH,
 			.sigleclick  = KEY_EVENT_SDCARD,
 		},
 		.keyboard[7] = {//按键K7
 			.adc_value   = 2325,
-			//.sigleclick  = KEY_EVENT_TRANSLATE,
-			//.longpress   = KEY_EVENT_OTHER_KEY_CHILD_LOCK_PLAY,
-		},
-	};
-#if 0			
-	KEYBOARD_CFG_T keyboard_cfg2 = {
-		.key_num		 = 5,	//按键数量
-		.fault_tol		 = 100, //容错值
-		.scan_cycle 	 = 40 , //扫描周期ms
-		.longpress_time  = 800, //长按时间ms
-		
-		.keyboard[0] = {//空闲状态
-			.adc_value	 = 2547,
-		},
-	
-		.keyboard[1] = {//按键6
-			.adc_value	= 40,	
-			.longpress	= KEY_EVENT_LED_OPEN,
-		},
-		.keyboard[2] = {//按键7
-			.adc_value	= 451,	
-			.sigleclick = KEY_EVENT_CYCLE_CLOUD,
-			.longpress	= KEY_EVENT_CYCLE_PRIVATE, 
-		},
-		.keyboard[3] = {//按键8
-			.adc_value	= 833,	
-			.push		= KEY_EVENT_WECHAT_START,
-			.release	= KEY_EVENT_WECHAT_STOP,
-		},
-		.keyboard[4] = {//按键9
-			.adc_value	= 1200, 
-			.sigleclick = KEY_EVENT_CHOOSE_MODE,
-		},
-		.keyboard[5] = {//按键10
-			.adc_value	= 1587,
-			.push		= KEY_EVENT_EN2CH_START,
-			.release	= KEY_EVENT_EN2CH_STOP,
-		},
-	};
+#if TRANSLATE_CONTINUE_MODE
+			.sigleclick  = KEY_EVENT_TRANSLATE,
+#else
 #endif
-	g_keyboard_obj1 = keyboard_create(&keyboard_cfg1);
-	//g_keyboard_obj2 = keyboard_create(&keyboard_cfg2);
-#if 0
-	if (g_keyboard_obj1 == NULL || g_keyboard_obj2 == NULL) 
-	{
-		DEBUG_LOGE("KEYBOARD", "keyboard_create fail !");
-		return;
-	}
-#endif	
-	if (g_keyboard_obj1 == NULL) 
+			.longpress   = KEY_EVENT_OTHER_KEY_CHILD_LOCK_PLAY,
+		},
+	};
+
+	g_keyboard_obj = keyboard_create(&keyboard_cfg);
+	
+	if (g_keyboard_obj == NULL) 
 	{
 		DEBUG_LOGE("KEYBOARD", "keyboard_create fail !");
 		return;
@@ -195,14 +159,14 @@ bool check_key_event_value(KEY_EVENT_t key_event)
 			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_NEXT");
 			break;
 		}
+		case KEY_EVENT_PLAY_PAUSE:
+		{
+			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_PLAY_PAUSE");
+			break;
+		}
 		case KEY_EVENT_WIFI_SETTING:
 		{
 			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_WIFI_SETTING");
-			break;
-		}
-		case KEY_EVENT_WIFI_STATUS:
-		{
-			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_WIFI_STATUS");
 			break;
 		}
 		case KEY_EVENT_SDCARD:
@@ -210,6 +174,18 @@ bool check_key_event_value(KEY_EVENT_t key_event)
 			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_SDCARD");
 			break;
 		}
+		case KEY_EVENT_HEAD_LED_SWITCH:
+		{
+			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_HEAD_LED_SWITCH");
+			break;
+		}
+#if WECHAT_CONTINUE_MODE
+		case KEY_EVENT_TRANSLATE:
+		{
+			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_TRANSLATE");
+			break;
+		}
+#else
 		case KEY_EVENT_CH2EN_START:
 		{
 			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_CH2EN_START");
@@ -230,6 +206,7 @@ bool check_key_event_value(KEY_EVENT_t key_event)
 			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_EN2CH_STOP");
 			break;
 		}
+#endif
 		case KEY_EVENT_WECHAT_START:
 		{
 			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_WECHAT_START");
@@ -240,16 +217,13 @@ bool check_key_event_value(KEY_EVENT_t key_event)
 			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_WECHAT_STOP");
 			break;
 		}
-		case KEY_EVENT_WECHAT_PLAY:
+#if FREE_TALK_CONTINUE_MODE
+		case KEY_EVENT_FREE_TALK_CONTINUE:
 		{
-			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_WECHAT_PLAY");
+			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_FREE_TALK_CONTINUE");
 			break;
 		}
-		case KEY_EVENT_PLAY_PAUSE:
-		{
-			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_PLAY_PAUSE");
-			break;
-		}
+#else
 		case KEY_EVENT_CHAT_START:
 		{
 			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_CHAT_START");
@@ -260,29 +234,15 @@ bool check_key_event_value(KEY_EVENT_t key_event)
 			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_CHAT_STOP");
 			break;
 		}
-		case KEY_EVENT_LED_OPEN:
+#endif
+		case KEY_EVENT_CHILD_LOCK:
 		{
-			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_CHAT_STOP");
+			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_CHILD_LOCK");
 			break;
 		}
-		case KEY_EVENT_LED_CLOSE:
+		case KEY_EVENT_OTHER_KEY_CHILD_LOCK_PLAY:
 		{
-			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_CHAT_STOP");
-			break;
-		}
-		case KEY_EVENT_CYCLE_CLOUD:
-		{
-			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_CHAT_STOP");
-			break;
-		}
-		case KEY_EVENT_CYCLE_PRIVATE:
-		{
-			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_CHAT_STOP");
-			break;
-		}
-		case KEY_EVENT_CHOOSE_MODE:
-		{
-			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_CHOOSE_MODE");
+			DEBUG_LOGE(LOG_TAG, "KEY_EVENT_OTHER_KEY_CHILD_LOCK_PLAY");
 			break;
 		}
 		default:
@@ -333,86 +293,25 @@ static bool get_wifi_status(void)
 	return g_keyboard_service_handle->is_wifi_connected;
 }
 
-static void touch_jaw_play_audio()
-{
-	static int index = 2;
-	
-	switch (index)
-	{
-		case 1:
-		{
-			audio_play_tone_mem(FLASH_MUSIC_TOUCH_001, TERMINATION_TYPE_NOW);
-			break;
-		}
-		case 2:
-		{
-			audio_play_tone_mem(FLASH_MUSIC_TOUCH_002, TERMINATION_TYPE_NOW);
-			break;
-		}
-		case 3:
-		{
-			audio_play_tone_mem(FLASH_MUSIC_TOUCH_003, TERMINATION_TYPE_NOW);
-			break;
-		}
-		case 4:
-		{
-			audio_play_tone_mem(FLASH_MUSIC_TOUCH_004, TERMINATION_TYPE_NOW);
-			break;
-		}
-		case 5:
-		{
-			audio_play_tone_mem(FLASH_MUSIC_TOUCH_005, TERMINATION_TYPE_NOW);
-			break;
-		}
-		case 6:
-		{
-			audio_play_tone_mem(FLASH_MUSIC_TOUCH_006, TERMINATION_TYPE_NOW);
-			break;
-		}
-		case 7:
-		{
-			audio_play_tone_mem(FLASH_MUSIC_TOUCH_007, TERMINATION_TYPE_NOW);
-			break;
-		}
-		default:
-			break;
-	}
-	index++;
-	if (index > 7)
-	{
-		index = 2;
-	}
-}
-
 static void adc_key_detect(void)
 {	
 	int key_event = 0;
 	int key_status = 0;
-	uint32_t adc_reading1 = 0;
-	uint32_t adc_reading2 = 0;
+	uint32_t adc_reading = 0;
 	
     for (int i = 0; i < 30; i++) 
 	{
-	    //adc_reading1 += adc1_get_raw((adc1_channel_t)ADC_CHANNEL_0);
-	    adc_reading2 += adc1_get_raw((adc1_channel_t)ADC_CHANNEL_3);
+	    adc_reading += adc1_get_raw((adc1_channel_t)ADC_CHANNEL_3);
     }	
-    //adc_reading1 /= 30;
-    adc_reading2 /= 30;
+    adc_reading /= 30;
 	
-	//DEBUG_LOGE(LOG_TAG, "adc_value1[%d]2[%d]", adc_reading1, adc_reading2);
+	//DEBUG_LOGE(LOG_TAG, "adc_value[%d]", adc_reading);
 
-	key_event = adc_keyboard_process(g_keyboard_obj1, adc_reading2, NULL);
+	key_event = adc_keyboard_process(g_keyboard_obj, adc_reading, NULL);
 	if (key_event > 0)
 	{
 		app_send_message(APP_NAME_KEYBOARD_SERVICE, APP_NAME_KEYBOARD_SERVICE, APP_EVENT_KEYBOARD_EVENT, &key_event, sizeof(key_event));
 	}
-#if 0
-	key_event = adc_keyboard_process(g_keyboard_obj2, adc_reading2, NULL);
-	if (key_event > 0)
-	{
-		app_send_message(APP_NAME_KEYBOARD_SERVICE, APP_NAME_KEYBOARD_SERVICE, APP_EVENT_KEYBOARD_EVENT, &key_event, sizeof(key_event));
-	}
-#endif
 }
 
 static void key_event_process(KEY_EVENT_t key_event)
@@ -420,10 +319,9 @@ static void key_event_process(KEY_EVENT_t key_event)
 	static int wechat_flag = 0;
 	static int wifi_status = WIFI_MANAGE_STATUS_STA_DISCONNECTED;
 	
-#if 1
 	switch (key_event)
 	{
-#if AMC_RECORD_PLAYBACK_ENABLE == 1
+#if AMC_RECORD_PLAYBACK_ENABLE
 		case KEY_EVENT_WECHAT_START:
 		{
 			record_playback_start();
@@ -468,68 +366,6 @@ static void key_event_process(KEY_EVENT_t key_event)
 			break;
 		}
 #endif 
-		
-#if 0
-		case DEVICE_NOTIFY_KEY_LED_PUSH:
-		{//聊天
-			//sd_music_manage_stop_first_play();
-			if (keyborad_key_cancle())
-			{
-				break;
-			}
-			
-			if (get_wifi_status())
-			{	
-				FREE_TALK_CONFIG_t free_config = {0};
-
-#if 0
-				free_config.mode = FREE_TALK_MODE_MANUAL_SINGLE;
-				free_config.single_talk_max_ms = 10*1000;
-#else
-				free_config.mode = FREE_TALK_MODE_AUTO_SINGLE;
-				free_config.single_talk_max_ms = 10*1000;
-				free_config.vad_detect_sensitivity = 1;
-#endif				
-				audio_play_tone_mem(FLASH_MUSIC_KEY_PRESS, AUDIO_TERM_TYPE_NOW);
-				task_thread_sleep(500);
-				free_talk_start(&free_config);
-			}
-			else
-			{
-				audio_play_tone_mem(FLASH_MUSIC_NETWORK_CONNECT_BEFORE_USE, AUDIO_TERM_TYPE_NOW);
-			}
-			break;
-		}
-		case DEVICE_NOTIFY_KEY_LED_RELEASE:
-		{//聊天
-			//free_talk_stop();
-			break;
-		}
-
-		case KEY_EVENT_TOUCH_HEAD:	//触摸头部
-		{
-			if (!get_wifi_status())
-			{
-				audio_play_tone_mem(FLASH_MUSIC_TONE_NO_NET, TERMINATION_TYPE_NOW);
-				break;
-			}
-
-			update_power_mng_sleep_time();
-			app_send_message(APP_NAME_KEYBOARD_SERVICE, APP_MSG_TO_ALL, APP_EVENT_KEYWORD_WAKEUP_NOTIFY, NULL, 0);
-			break;
-		}
-		case KEY_EVENT_TOUCH_JAW:	//触摸下巴
-		{	
-			update_power_mng_sleep_time();
-			free_talk_terminated();
-			if (wechat_flag == 0)
-			{
-				touch_jaw_play_audio();
-			}
-			break;
-		}
-#endif
-
 		case KEY_EVENT_VOL_DOWN:
 		{//音量减
 			int8_t volume = 0;
@@ -590,6 +426,12 @@ static void key_event_process(KEY_EVENT_t key_event)
 			playlist_next();
 			break;
 		}
+#if TRANSLATE_CONTINUE_MODE
+		case KEY_EVENT_TRANSLATE:
+		{
+			break;
+		}
+#else
 		case KEY_EVENT_CH2EN_START:
 		{//中译英开始
 			if (!get_wifi_status())
@@ -642,6 +484,7 @@ static void key_event_process(KEY_EVENT_t key_event)
 			translate_stop();
 			break;
 		}
+#endif
 		case KEY_EVENT_SDCARD:
 		{//播放SD卡
 			update_power_mng_sleep_time();
@@ -649,64 +492,6 @@ static void key_event_process(KEY_EVENT_t key_event)
 			sd_music_play_start();
 			break;
 		}
-/*
-		case DEVICE_NOTIFY_KEY_PREV_TAP:	
-		{//上一曲
-			if (keyborad_key_cancle())
-			{
-				break;
-			}
-		#if MODULE_FREE_TALK
-			if (is_free_talk_running())
-			{
-				free_talk_stop();//关闭录音
-			}
-		#endif	
-			auto_play_pause();
-			vTaskDelay(100);
-			//EspAudioPause();
-			player_mdware_play_tone(FLASH_MUSIC_PREV_SONG);
-			vTaskDelay(2*1000);
-			auto_play_prev();
-			break;
-		}
-		case DEVICE_NOTIFY_KEY_NEXT_TAP:	
-		{//下一曲
-			if (keyborad_key_cancle())
-			{
-				break;
-			}
-		#if MODULE_FREE_TALK	
-			if (is_free_talk_running())
-			{
-				free_talk_stop();//关闭录音
-			}
-		#endif	
-			auto_play_pause();
-			vTaskDelay(100);
-			player_mdware_play_tone(FLASH_MUSIC_NEXT_SONG);
-			vTaskDelay(2*1000);
-			auto_play_next();
-			break;
-		}
-		case DEVICE_NOTIFY_KEY_MENU_TAP:	
-		{//切换TF卡目录
-			sd_music_manage_stop_first_play();
-			if (keyborad_key_cancle())
-			{
-				break;
-			}
-		#if MODULE_FREE_TALK
-			if (is_free_talk_running())
-			{
-				free_talk_stop();//关闭录音
-			}
-		#endif	
-			sd_music_start();
-			test_playlist();
-			break;
-		}
-*/
 		case KEY_EVENT_PLAY_PAUSE:	
 		{//暂停/播放			
 			if (keyborad_key_cancle())
@@ -736,55 +521,40 @@ static void key_event_process(KEY_EVENT_t key_event)
 			wifi_manage_start_smartconfig();
 			break;
 		}
-		case KEY_EVENT_WIFI_STATUS:
-		{//提示网络状态
-			wifi_status = get_wifi_manage_status();
-			if(wifi_status == WIFI_MANAGE_STATUS_STA_CONNECTED)
+#if FREE_TALK_CONTINUE_MODE
+		case KEY_EVENT_FREE_TALK_CONTINUE:
+		{
+			if (!get_wifi_status())
 			{
-				audio_play_tone_mem(FLASH_MUSIC_WIFI_CONNECTED, TERMINATION_TYPE_NOW);
-			}
-			else if(wifi_status == WIFI_MANAGE_STATUS_STA_CONNECTING)
-			{
-				audio_play_tone_mem(FLASH_MUSIC_WIFI_CONNECTING, TERMINATION_TYPE_NOW);
-			}
-			else
-			{
-				audio_play_tone_mem(FLASH_MUSIC_WIFI_DISCONNECTED, TERMINATION_TYPE_NOW);
-			}
-		}
-	/*
-		case DEVICE_NOTIFY_KEY_STORY_TAP:
-		{//迪士尼故事
-			sd_music_manage_stop_first_play();
-			if (keyborad_key_cancle())
-			{
+				audio_play_tone_mem(FLASH_MUSIC_TONE_NO_NET, TERMINATION_TYPE_NOW);
 				break;
 			}
-			
-			auto_play_stop();//停止自动播放
-			vTaskDelay(200);
-		#if MODULE_FREE_TALK
-			if (is_free_talk_running())
-			{
-				free_talk_stop();//关闭录音
-			}
-		#endif	
-			player_mdware_play_tone(FLASH_MUSIC_DISNEY_STORY);
-			vTaskDelay(2500);
-			flash_music_start();
-			set_sd_music_stop_state();
+
+			update_power_mng_sleep_time();
+			app_send_message(APP_NAME_KEYBOARD_SERVICE, APP_MSG_TO_ALL, APP_EVENT_KEYWORD_WAKEUP_NOTIFY, NULL, 0);
 			break;
 		}
-		case DEVICE_NOTIFY_KEY_STORY_LONGPRESSED:
-		{//七彩灯
-			switch_color_led();
+#else
+		case KEY_EVENT_CHAT_START:
+		{
 			break;
 		}
-*/
+		case KEY_EVENT_CHAT_STOP:
+		{
+			break;
+		}
+#endif
+		case KEY_EVENT_CHILD_LOCK:
+		{
+			break;
+		}
+		case KEY_EVENT_OTHER_KEY_CHILD_LOCK_PLAY:
+		{
+			break;
+		}
 		default:
 			break;
 	}
-#endif
 }
 
 static void keyboard_event_callback(void *app, APP_EVENT_MSG_t *msg)

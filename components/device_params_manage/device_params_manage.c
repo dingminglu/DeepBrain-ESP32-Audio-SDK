@@ -431,7 +431,7 @@ DEVICE_PARAMS_ERRNO_t init_device_params(void)
 		DEBUG_LOGE(LOG_TAG, "g_device_params crc have a change!");
 		memset(g_device_params, 0, sizeof(DEVICE_PARAMS_CONFIG_T));
 	}
-	DEBUG_LOGE(LOG_TAG, "curr crc is [%d] !", get_device_params_crc(g_device_params));
+	DEBUG_LOGE(LOG_TAG, "curr crc is [0x%0x] !", get_device_params_crc(g_device_params));
 
 	if (g_device_params->params_version != DEVICE_PARAMS_VERSION_1) 
 	{

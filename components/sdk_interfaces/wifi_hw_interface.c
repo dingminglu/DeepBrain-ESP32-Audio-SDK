@@ -37,7 +37,7 @@ bool get_wifi_mac_str(
 	status = esp_wifi_get_mac(ESP_IF_WIFI_STA, eth_mac);
 	if(status == ESP_OK)
 	{
-		snprintf(str_mac_addr, str_len, "%02X%02X%02X%02X%02X%02X", 
+		snprintf(str_mac_addr, str_len, "%02hhX%02hhX%02hhX%02hhX%02hhX%02hhX", 
 				 eth_mac[0],eth_mac[1],eth_mac[2],eth_mac[3],eth_mac[4],eth_mac[5]);
 		return true;
 	}

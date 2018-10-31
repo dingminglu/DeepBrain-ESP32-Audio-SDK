@@ -3,7 +3,6 @@
 
 #include <stdio.h>
 #include "ctypes_interface.h"
-#include "mbedtls/pk.h"
 #include "mpush_interface.h"
 
 #ifdef __cplusplus
@@ -110,13 +109,11 @@ typedef struct
 void mpush_make_bind_user_msg(
 	char *_out_buf,
 	size_t *_out_len,
-	MPUSH_MSG_CONFIG_T *_config,
-	mbedtls_rsa_context *_rsa);
+	MPUSH_MSG_CONFIG_T *_config);
 void mpush_make_handshake_msg(
 	char *_out_buf,
 	size_t *_out_len,
-	MPUSH_MSG_CONFIG_T *_config,
-	mbedtls_rsa_context *_rsa);
+	MPUSH_MSG_CONFIG_T *_config);
 void print_msg_head(MPUSH_MSG_HEADER_T *_head);
 void convert_msg_head_to_net(MPUSH_MSG_HEADER_T *_head);
 void convert_msg_head_to_host(MPUSH_MSG_HEADER_T *_head);

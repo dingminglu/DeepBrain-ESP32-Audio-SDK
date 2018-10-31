@@ -46,9 +46,7 @@
 
 #define MODULE_DAC_DEFFERENT_OUT 	0	//差分输出
 
-#define MIQI_BOARD //米奇开发板
-
-#define PROJECT_NAME  "PJ-20180830-0001-ludu-E3DlpUzSEh3UQSDb"
+#define PROJECT_NAME  "PJ-20180425-0001-dbxb-2z8qgKYsSrtLadUe"
 
 //app module control
 #define AMC_AIP_SHARED_DATA 			1//录音数据共享
@@ -56,20 +54,19 @@
 #define AMC_KEYWORD_WAKEUP_RENMAI		!AMC_KEYWORD_WAKEUP_LEXIN//人麦唤醒
 #define AMC_RECORD_PLAYBACK_ENABLE		0//录音回放
 
-#if 0
-/******************************************************************
-//WIFI AP信息
-*******************************************************************/
-#define WIFI_CONFIG_MODE_AP			1
-#define WIFI_CONFIG_MODE_AIRKISS !WIFI_CONFIG_MODE_AP
-#define WIFI_SSID_DEFAULT 		"yiyu"
-#define WIFI_PASSWD_DEFAULT 	"12345678"
-#define WIFI_DEFAULT_AP_NAME 	 "胡巴WIFI"
-#define WIFI_DEFAULT_AP_IPADDR   "192.168.88.1"
-#define WIFI_DEFAULT_AP_SUBNET   "255.255.255.0"
-#define WIFI_DEFAULT_AP_GATEWAY  "192.168.88.1"
-#define WIFI_DEFAULT_AP_DNS      "192.168.88.1"
-#endif
+//chat app module control
+#define FREE_TALK_CONTINUE_MODE				1
+#define FREE_TALK_AUTO_SINGLE_MODE			0
+#define FREE_TALK_SINGLE_MODE				0
+
+//wechat app module control
+#define WECHAT_CONTINUE_MODE				1
+#define WECHAT_SINGLE_MODE					!WECHAT_CONTINUE_MODE
+
+//translate app module control
+#define TRANSLATE_CONTINUE_MODE				1
+#define TRANSLATE_SINGLE_MODE				!TRANSLATE_CONTINUE_MODE
+
 /******************************************************************
 //WIFI AP信息
 *******************************************************************/
