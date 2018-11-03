@@ -233,6 +233,7 @@ static void free_talk_record_cb(AIP_RECORD_RESULT_t *rec_result)
 	if (!ft_rec_queue_add_tail(rec_obj))
 	{
 		DEBUG_LOGE(LOG_TAG, "ft_rec_queue_add_tail failed");
+		ft_rec_queue_obj_delete(rec_obj);
 		return;
 	}
 	
@@ -562,7 +563,8 @@ static void free_talk_auto_single_process(FREE_TALK_HANDLER_t *handler)
 	{
 		DEBUG_LOGE(LOG_TAG, "ft_rec_queue_remove failed");
 	}
-	memory_free(rec_obj);
+
+	ft_rec_queue_obj_delete(rec_obj);
 	rec_obj = NULL;
 }
 
@@ -1653,6 +1655,11 @@ APP_FRAMEWORK_ERRNO_t translate_stop(void)
 /* 使free_talk操作完全终止 */
 void free_talk_terminated()
 {
+	if (g_free_talk_handler == NULL)
+	{
+		return;
+	}
+	
 	g_free_talk_handler->need_cancel_record_sn = ft_get_record_sn();
 	free_talk_stop();
 }

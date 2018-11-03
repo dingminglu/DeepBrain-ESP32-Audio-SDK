@@ -15,13 +15,14 @@
 #include "debug_log_interface.h"
 #include "power_interface.h"
 
-#define TAG_MCU_COMM "MCU_COMM"
+#define LOG_TAG 			"MCU COMM"
+#define MCU_LOOP_TIMEOUT	20
 
-#define SERIAL_TXD GPIO_NUM_27
-#define SERIAL_RXD GPIO_NUM_19
-#define SERIAL_UART_NUM UART_NUM_1
+#define SERIAL_TXD 			GPIO_NUM_27
+#define SERIAL_RXD 			GPIO_NUM_19
+#define SERIAL_UART_NUM 	UART_NUM_1
 
-#define SERIAL_COMM_HEAD 0x55
+#define SERIAL_COMM_HEAD 	0x55
 	
 typedef struct
 {
@@ -32,7 +33,7 @@ typedef struct
 }MCU_SERIAL_PARSE_HANDLER_T;
 
 
-MCU_SERIAL_PARSE_HANDLER_T *g_uart_comm_handler = NULL;
+static MCU_SERIAL_PARSE_HANDLER_T *g_uart_comm_handler = NULL;
 
 /**
  * mcu serial check sum
@@ -143,7 +144,7 @@ static void mcu_serial_cmd_process(unsigned char *_data, size_t _data_len)
 			i_bat_vol = i_bat_vol << 8;
 			i_bat_vol += _data[5];
 			f_bat_vol = (3.3/4095)*i_bat_vol;
-			DEBUG_LOGE(TAG_MCU_COMM, "battery vol:i_bat_vol = %d, f_bat_vol=%.2f", i_bat_vol, f_bat_vol);
+			DEBUG_LOGE(LOG_TAG, "battery vol:i_bat_vol = %d, f_bat_vol=%.2f", i_bat_vol, f_bat_vol);
 			set_battery_voltage(f_bat_vol*2);
 			break;
 		}
@@ -166,7 +167,7 @@ static void mcu_serial_parse(
 	
 	for (i=0; i<_data_len; i++)
 	{
-		//DEBUG_LOGE(TAG_MCU_COMM, "status:%d byte:%02x\n", _handler->_status, *(_data+i));
+		//DEBUG_LOGE(LOG_TAG, "status:%d byte:%02x\n", _handler->_status, *(_data+i));
 		switch (_handler->_status)
 		{
 			case MCU_SERIAL_COMM_STATUS_HEAD1:
@@ -236,47 +237,15 @@ static void mcu_serial_parse(
 static void mcu_serial_process(void)
 {
 	uint8_t recv_buff[32] = {0};
-	mcu_serial_init();
-	
-	if (g_uart_comm_handler == NULL)
+
+	int len = uart_read_bytes(SERIAL_UART_NUM, recv_buff, sizeof(recv_buff), 20 / portTICK_RATE_MS);
+	if (len <= 0)
 	{
-		g_uart_comm_handler = (MCU_SERIAL_PARSE_HANDLER_T *)memory_malloc(sizeof(MCU_SERIAL_PARSE_HANDLER_T));
-		if (g_uart_comm_handler == NULL)
-		{
-			DEBUG_LOGE(TAG_MCU_COMM, "memory_malloc g_uart_comm_handler failed");
-			return;
-		}
-		memset(g_uart_comm_handler, 0, sizeof(MCU_SERIAL_PARSE_HANDLER_T));
-
-		SEMPHR_CREATE_LOCK(g_uart_comm_handler->mutex_lock);
-		if (g_uart_comm_handler->mutex_lock == NULL)
-		{
-			DEBUG_LOGE(TAG_MCU_COMM, "SEMPHR_CREATE_LOCK failed");
-			memory_free(g_uart_comm_handler);
-			g_uart_comm_handler = NULL;
-			return;
-		}
+		return;
 	}
-
-	while (1)
-	{		
-		int len = uart_read_bytes(SERIAL_UART_NUM, recv_buff, sizeof(recv_buff), 20 / portTICK_RATE_MS);
-		if (len <= 0)
-		{
-			vTaskDelay(10);
-			continue;
-		}
-		
-		//DEBUG_LOGE(TAG_MCU_COMM, "uart_read_bytes len = %d\n", len);
-		mcu_serial_parse(g_uart_comm_handler, recv_buff, len);
-	}
-	vTaskDelete(NULL);
-}
-
-
-void mcu_serial_comm_create(void)
-{
-	xTaskCreate(mcu_serial_process, "mcu_serial_process", 4096, NULL, 10, NULL);
+	
+	//DEBUG_LOGE(LOG_TAG, "uart_read_bytes len = %d\n", len);
+	mcu_serial_parse(g_uart_comm_handler, recv_buff, len);
 }
 
 bool uart_send_cmd(
@@ -291,7 +260,7 @@ bool uart_send_cmd(
 	
 	if (g_uart_comm_handler == NULL)
 	{
-		DEBUG_LOGE(TAG_MCU_COMM, "g_uart_comm_handler is NULL");
+		DEBUG_LOGE(LOG_TAG, "g_uart_comm_handler is NULL");
 		return false;
 	}
 	
@@ -309,13 +278,16 @@ bool uart_send_cmd(
 		rxd_buf[index] += rxd_buf[i];
 	}
 	index++;
-	/*
-	DEBUG_LOGE(TAG_MCU_COMM, "send len = %d\n", index);
+
+	//DEBUG_LOGE(LOG_TAG, "rxd_buf[4] is [%d]", rxd_buf[4]);
+#if 0
+	DEBUG_LOGE(LOG_TAG, "send len = %d\n", index);
 	for (i=0; i<index; i++)
 	{
-		DEBUG_LOGE(TAG_MCU_COMM, "byte:%02x\n", rxd_buf[i]);
+		DEBUG_LOGE(LOG_TAG, "byte:%02x\n", rxd_buf[i]);
 	}
-	*/
+#endif
+
 	SEMPHR_TRY_LOCK(g_uart_comm_handler->mutex_lock);
 	send_len = uart_write_bytes(SERIAL_UART_NUM, rxd_buf, index);
 	SEMPHR_TRY_UNLOCK(g_uart_comm_handler->mutex_lock);
@@ -325,9 +297,124 @@ bool uart_send_cmd(
 	}
 	else
 	{
-		DEBUG_LOGE(TAG_MCU_COMM, "uart_write_bytes failed,[%d]!=[%d]", 
+		DEBUG_LOGE(LOG_TAG, "uart_write_bytes failed,[%d]!=[%d]", 
 			index, send_len);
 		return false;
 	}
+}
+
+static void mcu_event_callback(void *app, APP_EVENT_MSG_t *msg)
+{	
+	switch (msg->event)
+	{
+		case APP_EVENT_DEFAULT_LOOP_TIMEOUT:
+		{
+			mcu_serial_process();
+			break;
+		}
+		case APP_EVENT_MCU_SERIAL_COMM_SERVICE_IDLE:
+		{
+			break;
+		}
+		case APP_EVENT_DEFAULT_EXIT:
+		{
+			app_exit(app);
+			break;
+		}
+		default:
+			break;
+	}
+}
+
+static void mcu_serial_comm_destroy(void)
+{
+	if (g_uart_comm_handler == NULL)
+	{
+		return;
+	}
+
+	if (g_uart_comm_handler->mutex_lock != NULL)
+	{
+		SEMPHR_DELETE_LOCK(g_uart_comm_handler->mutex_lock);
+		g_uart_comm_handler->mutex_lock = NULL;
+	}
+	
+	memory_free(g_uart_comm_handler);
+	g_uart_comm_handler = NULL;
+}
+
+static void mcu_serial_comm_service(void *pv)
+{
+	APP_OBJECT_t *app = NULL;
+
+	app = app_new(APP_NAME_MCU_SERIAL_COMM_SERVICE);	
+	if (app == NULL)
+	{
+		DEBUG_LOGE(LOG_TAG, "new app[%s] failed, out of memory", APP_NAME_MCU_SERIAL_COMM_SERVICE);
+		mcu_serial_comm_destroy();
+		task_thread_exit();
+		return;
+	}
+	else
+	{
+		app_set_loop_timeout(app, MCU_LOOP_TIMEOUT, mcu_event_callback);
+		DEBUG_LOGI(LOG_TAG, "%s create success", APP_NAME_MCU_SERIAL_COMM_SERVICE);
+	}
+	
+	app_msg_dispatch(app);
+	
+	app_delete(app);
+	
+	mcu_serial_comm_destroy();
+	
+	task_thread_exit();
+}
+
+APP_FRAMEWORK_ERRNO_t mcu_serial_comm_create(int task_priority)
+{
+	if (g_uart_comm_handler != NULL)
+	{
+		DEBUG_LOGE(LOG_TAG, "g_uart_comm_handler already exists");
+		return APP_FRAMEWORK_ERRNO_FAIL;
+	}
+	
+	//申请运行句柄
+	g_uart_comm_handler = (MCU_SERIAL_PARSE_HANDLER_T *)memory_malloc(sizeof(MCU_SERIAL_PARSE_HANDLER_T));
+	if (g_uart_comm_handler == NULL)
+	{
+		DEBUG_LOGE(LOG_TAG, "memory_malloc g_uart_comm_handler failed");
+		return APP_FRAMEWORK_ERRNO_MALLOC_FAILED;
+	}
+	memset(g_uart_comm_handler, 0, sizeof(MCU_SERIAL_PARSE_HANDLER_T));
+
+	//初始化参数
+	SEMPHR_CREATE_LOCK(g_uart_comm_handler->mutex_lock);
+	if (g_uart_comm_handler->mutex_lock == NULL)
+	{
+		mcu_serial_comm_destroy();
+		DEBUG_LOGE(LOG_TAG, "g_uart_comm_handler->lock init failed");
+		return APP_FRAMEWORK_ERRNO_FAIL;
+	}
+
+	//初始化MCU配置
+	mcu_serial_init();
+
+	//创建运行线程
+    if (!task_thread_create(mcu_serial_comm_service,
+                    "mcu_serial_comm_service",
+                    APP_NAME_MCU_SERIAL_COMM_SERVICE_STACK_SIZE,
+                    NULL,
+                    task_priority)) {
+
+        DEBUG_LOGE(LOG_TAG, "ERROR creating mcu_serial_process task! Out of memory?");
+		return APP_FRAMEWORK_ERRNO_FAIL;
+    }
+
+	return APP_FRAMEWORK_ERRNO_OK;
+}
+
+APP_FRAMEWORK_ERRNO_t mcu_serial_comm_delete(void)
+{
+	return app_send_message(APP_NAME_MCU_SERIAL_COMM_SERVICE, APP_NAME_MCU_SERIAL_COMM_SERVICE, APP_EVENT_DEFAULT_EXIT, NULL, 0);
 }
 

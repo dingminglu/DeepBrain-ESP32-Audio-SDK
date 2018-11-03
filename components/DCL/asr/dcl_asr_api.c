@@ -324,7 +324,7 @@ DCL_ERROR_CODE_t dcl_asr_session_begin(
 	DCL_ASR_HTTP_BUFFER_t *http_buffer = NULL;
 	DCL_ASR_ENCODE_BUFFER_t *encode_buffer = NULL;
 	DCL_ASR_INPUT_PARAMS_t *asr_params = NULL;
-	DCL_ASR_HANDLE_t *handle = NULL;
+	DCL_ASR_HANDLE_t *handler = NULL;
 	
 	if (asr_handle == NULL)
 	{
@@ -332,17 +332,16 @@ DCL_ERROR_CODE_t dcl_asr_session_begin(
 		return DCL_ERROR_CODE_SYS_INVALID_PARAMS;
 	}
 	
-	*asr_handle = (void *)memory_malloc(sizeof(DCL_ASR_HANDLE_t));
-	if (*asr_handle == NULL)
+	handler = (void *)memory_malloc(sizeof(DCL_ASR_HANDLE_t));
+	if (handler == NULL)
 	{
 		DEBUG_LOGE(TAG_LOG, "dcl_tts_session_begin malloc failed");
 		return DCL_ERROR_CODE_SYS_NOT_ENOUGH_MEM;
 	}
-	memset(*asr_handle, 0, sizeof(DCL_ASR_HANDLE_t));
-	handle = *asr_handle;
-	http_buffer = &handle->http_buffer;
-	encode_buffer = &handle->encode_buffer;
-	asr_params = &handle->asr_params;
+	memset(handler, 0, sizeof(DCL_ASR_HANDLE_t));
+	http_buffer = &handler->http_buffer;
+	encode_buffer = &handler->encode_buffer;
+	asr_params = &handler->asr_params;
 	http_buffer->sock = INVALID_SOCK;
 	asr_params->asr_lang = DCL_ASR_LANG_CHINESE;
 	asr_params->asr_mode = DCL_ASR_MODE_ASR;
@@ -352,6 +351,8 @@ DCL_ERROR_CODE_t dcl_asr_session_begin(
 	if (sock_get_server_info(asr_params->asr_server_url, &http_buffer->domain, &http_buffer->port, &http_buffer->params) != 0)
 	{
 		DEBUG_LOGE(TAG_LOG, "sock_get_server_info failed");
+		memory_free(handler);
+		handler = NULL;
 		return DCL_ERROR_CODE_NETWORK_DNS_FAIL;
 	}
 
@@ -360,14 +361,19 @@ DCL_ERROR_CODE_t dcl_asr_session_begin(
 	{
 		DEBUG_LOGE(TAG_LOG, "sock_connect fail,[%s:%s]", 
 			http_buffer->domain, http_buffer->port);
+		memory_free(handler);
+		handler = NULL;
 		return DCL_ERROR_CODE_NETWORK_UNAVAILABLE;
 	}
 	else
 	{
-		DEBUG_LOGE(TAG_LOG, "sock_connect success,[%s:%s],sock[%d]", 
+		DEBUG_LOGI(TAG_LOG, "sock_connect success,[%s:%s],sock[%d]", 
 			http_buffer->domain, http_buffer->port, http_buffer->sock);
 	}
+	
 	sock_set_nonblocking(http_buffer->sock);
+
+	*asr_handle = handler;
 	
 	return DCL_ERROR_CODE_OK;
 }

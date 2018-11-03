@@ -254,7 +254,8 @@ static void power_event_callback(void *app, APP_EVENT_MSG_t *msg)
 			battery_vol = get_battery_voltage();
    			DEBUG_LOGI(PRINT_TAG, "Battery vol = %.2fv", battery_vol);			
 			DEBUG_LOGI(PRINT_TAG, "free mem size:inter[%dkb],psram[%dkb]", 
-				esp_get_free_heap_size()/1024, xPortGetFreeHeapSize()/1024);
+				heap_caps_get_free_size(MALLOC_CAP_8BIT|MALLOC_CAP_INTERNAL)/1024, 
+				xPortGetFreeHeapSize()/1024);
 #if 0
 			//按键检测
 			if (get_power_button_status())

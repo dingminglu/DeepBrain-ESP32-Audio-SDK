@@ -1,6 +1,7 @@
 #ifndef __MCU_SERIAL_COMM_H__
 #define __MCU_SERIAL_COMM_H__
 #include <stdio.h>
+#include "app_framework.h"
 
 typedef enum SERIAL_COMM_CMD_T
 {
@@ -25,11 +26,10 @@ typedef enum MCU_SERIAL_PARSE_STATUS_T
 /**
  * create mcu serial comm service
  *
- * @param _key_cb
- * @param _battery_cb 
- * @return none
+ * @param task_priority
+ * @return APP_FRAMEWORK_ERRNO_t
  */
-void mcu_serial_comm_create(void);
+APP_FRAMEWORK_ERRNO_t mcu_serial_comm_create(int task_priority);
 
 bool uart_send_cmd(
 	uint8_t cmd, 

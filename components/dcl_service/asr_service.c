@@ -360,7 +360,7 @@ static void asr_service_event_callback(void *app, APP_EVENT_MSG_t *msg)
 			asr_service_process(pcm_obj);
 
 			//释放数据内容
-			memory_free(pcm_obj);
+			asr_service_del_asr_object(pcm_obj);
 			pcm_obj = NULL;
 			break;
 		}

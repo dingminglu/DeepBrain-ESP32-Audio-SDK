@@ -237,7 +237,7 @@ void app_startup(MediaService *service)
 	set_volume(65);
 	
 	//3.mcu serial create
-	mcu_serial_comm_create();
+	mcu_serial_comm_create(TASK_PRIORITY_2);
 	
 	//4.led ctrl service
 	led_ctrl_service_create(TASK_PRIORITY_2);
@@ -255,22 +255,22 @@ void app_startup(MediaService *service)
 	wechat_service_create(TASK_PRIORITY_1);
 
 	//10.asr service create
-	asr_service_create(TASK_PRIORITY_1);
+	asr_service_create(TASK_PRIORITY_3);
 
 	//11.wifi manage
-	wifi_manage_create(TASK_PRIORITY_5);
+	wifi_manage_create(TASK_PRIORITY_2);
 
 	//12.aip service create
 	aip_service_create(TASK_PRIORITY_1);
 	
 #if AMC_KEYWORD_WAKEUP_LEXIN == 1
 	//13.keyword wakeup engine lexin
-	keyword_wakeup_lexin_create(TASK_PRIORITY_1);
+	keyword_wakeup_lexin_create(TASK_PRIORITY_5);
 #endif
 
 #if AMC_KEYWORD_WAKEUP_RENMAI == 1
 	//14.keyword wakeup create
-	keyword_wakeup_create(TASK_PRIORITY_1);
+	keyword_wakeup_create(TASK_PRIORITY_5);
 #endif
 
 #if AMC_RECORD_PLAYBACK_ENABLE == 1
@@ -279,7 +279,7 @@ void app_startup(MediaService *service)
 #endif
 
 	//16.free talk
-	free_talk_create(TASK_PRIORITY_1);
+	free_talk_create(TASK_PRIORITY_3);
 
 	//17.OTA service
 	ota_service_create(TASK_PRIORITY_2);

@@ -114,7 +114,8 @@ static bool is_valid_music_name(const char *_music_name)
 	if (strstr(str_name, ".m4a") != NULL
 		|| strstr(str_name, ".flac") != NULL
 		|| strstr(str_name, ".amr") != NULL
-		|| strstr(str_name, ".mp3") != NULL)
+		|| strstr(str_name, ".mp3") != NULL
+		|| strstr(str_name, ".wav") != NULL)
 	{
 		return true;
 	}

@@ -40,12 +40,68 @@ LED_CTRL_LED_STATUS_t get_led_status()
 	return led_status;
 }
 
+static bool filter_eye_led_redundant_step(int new_eye_led_event, bool new_led_switch)
+{
+	static int last_eye_led_event = -1;
+	static bool last_new_led_switch = true;
+	bool led_need_change = true;
+	
+	if (last_eye_led_event != new_eye_led_event)
+	{
+		led_need_change = true;
+		last_eye_led_event = new_eye_led_event;
+		last_new_led_switch = new_led_switch;
+	}
+	else
+	{
+		if (last_new_led_switch != new_led_switch)
+		{
+			led_need_change = true;
+			last_new_led_switch = new_led_switch;
+		}
+		else
+		{
+			led_need_change = false;
+		}
+	}
+	
+	return led_need_change;
+}
+
+static bool filter_ear_led_redundant_step(int new_ear_led_event, bool new_led_switch)
+{
+	static int last_ear_led_event = -1;
+	static bool last_new_led_switch = true;
+	bool led_need_change = true;
+
+	if (last_ear_led_event != new_ear_led_event)
+	{
+		led_need_change = true;
+		last_ear_led_event = new_ear_led_event;
+		last_new_led_switch = new_led_switch;
+	}
+	else
+	{
+		if (last_new_led_switch != new_led_switch)
+		{
+			led_need_change = true;
+			last_new_led_switch = new_led_switch;
+		}
+		else
+		{
+			led_need_change = false;
+		}
+	}
+	
+	return led_need_change;
+}
+
 static void eye_led_flicker_status(int eye_led_event, int eye_led_flicker_switch, int eye_time_flag)
 {
 	static long int eye_time = 0;
 	long int curr_time = 0;
 	static int temp_eye_time_flag = 1;
-	static int flag = 0;
+	bool led_switch = true;
 
 	if (eye_led_event == APP_EVENT_LED_CTRL_EYE_300_MS_FLICKER && eye_led_flicker_switch == EYE_LED_FLICKER_ON)
 	{
@@ -57,28 +113,42 @@ static void eye_led_flicker_status(int eye_led_event, int eye_led_flicker_switch
 		
 		if ((curr_time - eye_time) >= 0 && (curr_time - eye_time) < 300)
 		{
+			led_switch = true;
 			temp_eye_time_flag = 0;
-			led_eye_on();
+			if (filter_eye_led_redundant_step(eye_led_event, led_switch))
+			{
+				if (!led_eye_on())
+				{
+					led_eye_on();
+				}
+			}
 		}
 		else if ((curr_time - eye_time) >= 300 && (curr_time - eye_time) < 600)
 		{
-			led_eye_off();
+			led_switch = false;
+			if (filter_eye_led_redundant_step(eye_led_event, led_switch))
+			{
+				if (!led_eye_off())
+				{
+					led_eye_off();
+				}
+			}
 		}
 		else
 		{
+			led_switch = true;
 			temp_eye_time_flag = 1;
-			led_eye_on();
+			if (filter_eye_led_redundant_step(eye_led_event, led_switch))
+			{
+				if (!led_eye_on())
+				{
+					led_eye_on();
+				}
+			}
 		}
 	}
 	else if (eye_led_event == APP_EVENT_LED_CTRL_EYE_500_MS_FLICKER && eye_led_flicker_switch == EYE_LED_FLICKER_ON)
 	{
-		/*
-		if (eye_time_flag == 1 && flag == 1)
-		{
-			temp_eye_time_flag = 1;
-			flag = 0;
-		}
-		*/
 		if (temp_eye_time_flag == 1)
 		{
 			eye_time = get_time_of_day();
@@ -87,20 +157,38 @@ static void eye_led_flicker_status(int eye_led_event, int eye_led_flicker_switch
 		
 		if ((curr_time - eye_time) >= 0 && (curr_time - eye_time) < 500)
 		{
-			//if (eye_time_flag = 1)
-			//{
-				temp_eye_time_flag = 0;
-				led_eye_on();				
-			//}
+			led_switch = true;
+			temp_eye_time_flag = 0;
+			if (filter_eye_led_redundant_step(eye_led_event, led_switch))
+			{
+				if (!led_eye_on())
+				{
+					led_eye_on();
+				}
+			}
 		}
 		else if ((curr_time - eye_time) >= 500 && (curr_time - eye_time) < 1000)
 		{
-			led_eye_off();
+			led_switch = false;
+			if (filter_eye_led_redundant_step(eye_led_event, led_switch))
+			{
+				if (!led_eye_off())
+				{
+					led_eye_off();
+				}
+			}
 		}
 		else
 		{
+			led_switch = true;
 			temp_eye_time_flag = 1;
-			led_eye_on();
+			if (filter_eye_led_redundant_step(eye_led_event, led_switch))
+			{
+				if (!led_eye_on())
+				{
+					led_eye_on();
+				}
+			}
 		}
 	}
 	else if (eye_led_event == APP_EVENT_LED_CTRL_EYE_800_MS_FLICKER && eye_led_flicker_switch == EYE_LED_FLICKER_ON)
@@ -113,17 +201,38 @@ static void eye_led_flicker_status(int eye_led_event, int eye_led_flicker_switch
 		
 		if ((curr_time - eye_time) >= 0 && (curr_time - eye_time) < 800)
 		{
+			led_switch = true;
 			temp_eye_time_flag = 0;
-			led_eye_on();
+			if (filter_eye_led_redundant_step(eye_led_event, led_switch))
+			{
+				if (!led_eye_on())
+				{
+					led_eye_on();
+				}
+			}
 		}
 		else if ((curr_time - eye_time) >= 800 && (curr_time - eye_time) < 1600)
 		{
-			led_eye_off();
+			led_switch = false;
+			if (filter_eye_led_redundant_step(eye_led_event, led_switch))
+			{
+				if (!led_eye_off())
+				{
+					led_eye_off();
+				}
+			}
 		}
 		else
 		{
+			led_switch = true;
 			temp_eye_time_flag = 1;
-			led_eye_on();
+			if (filter_eye_led_redundant_step(eye_led_event, led_switch))
+			{
+				if (!led_eye_on())
+				{
+					led_eye_on();
+				}
+			}
 		}
 	}
 	else if (eye_led_event == APP_EVENT_LED_CTRL_EYE_1000_MS_FLICKER && eye_led_flicker_switch == EYE_LED_FLICKER_ON)
@@ -136,17 +245,38 @@ static void eye_led_flicker_status(int eye_led_event, int eye_led_flicker_switch
 		
 		if ((curr_time - eye_time) >= 0 && (curr_time - eye_time) < 1000)
 		{
+			led_switch = true;
 			temp_eye_time_flag = 0;
-			led_eye_on();
+			if (filter_eye_led_redundant_step(eye_led_event, led_switch))
+			{
+				if (!led_eye_on())
+				{
+					led_eye_on();
+				}
+			}
 		}
 		else if ((curr_time - eye_time) >= 1000 && (curr_time - eye_time) < 2000)
 		{
-			led_eye_off();
+			led_switch = false;
+			if (filter_eye_led_redundant_step(eye_led_event, led_switch))
+			{
+				if (!led_eye_off())
+				{
+					led_eye_off();
+				}
+			}
 		}
 		else
 		{
+			led_switch = true;
 			temp_eye_time_flag = 1;
-			led_eye_on();
+			if (filter_eye_led_redundant_step(eye_led_event, led_switch))
+			{
+				if (!led_eye_on())
+				{
+					led_eye_on();
+				}
+			}
 		}
 	}
 	else if (eye_led_event == APP_EVENT_LED_CTRL_EYE_3000_MS_FLICKER && eye_led_flicker_switch == EYE_LED_FLICKER_ON)
@@ -159,17 +289,38 @@ static void eye_led_flicker_status(int eye_led_event, int eye_led_flicker_switch
 		
 		if ((curr_time - eye_time) >= 0 && (curr_time - eye_time) < 3000)
 		{
+			led_switch = true;
 			temp_eye_time_flag = 0;
-			led_eye_on();
+			if (filter_eye_led_redundant_step(eye_led_event, led_switch))
+			{
+				if (!led_eye_on())
+				{
+					led_eye_on();
+				}
+			}
 		}
 		else if ((curr_time - eye_time) >= 3000 && (curr_time - eye_time) < 6000)
 		{
-			led_eye_off();
+			led_switch = false;
+			if (filter_eye_led_redundant_step(eye_led_event, led_switch))
+			{
+				if (!led_eye_off())
+				{
+					led_eye_off();
+				}
+			}
 		}
 		else
 		{
+			led_switch = true;
 			temp_eye_time_flag = 1;
-			led_eye_on();
+			if (filter_eye_led_redundant_step(eye_led_event, led_switch))
+			{
+				if (!led_eye_on())
+				{
+					led_eye_on();
+				}
+			}
 		}
 	}
 	else if (eye_led_event == APP_EVENT_LED_CTRL_EYE_GRADUAL_CHANGE_FLICKER && eye_led_flicker_switch == EYE_LED_FLICKER_ON)
@@ -182,31 +333,80 @@ static void eye_led_flicker_status(int eye_led_event, int eye_led_flicker_switch
 		
 		if ((curr_time - eye_time) >= 0 && (curr_time - eye_time) < 1500)
 		{
+			led_switch = true;
 			temp_eye_time_flag = 0;
-			led_eye_on();
+			if (filter_eye_led_redundant_step(eye_led_event, led_switch))
+			{
+				if (!led_eye_on())
+				{
+					led_eye_on();
+				}
+			}
 		}
 		else if ((curr_time - eye_time) >= 1500 && (curr_time - eye_time) < 3000)
 		{
-			led_eye_off();
+			led_switch = false;
+			if (filter_eye_led_redundant_step(eye_led_event, led_switch))
+			{
+				if (!led_eye_off())
+				{
+					led_eye_off();
+				}
+			}
 		}
 		else if ((curr_time - eye_time) >= 3000 && (curr_time - eye_time) < 4500)
 		{
-			led_eye_on();
+			led_switch = true;
+			if (filter_eye_led_redundant_step(eye_led_event, led_switch))
+			{
+				if (!led_eye_on())
+				{
+					led_eye_on();
+				}
+			}
 		}else if ((curr_time - eye_time) >= 4500 && (curr_time - eye_time) < 7500)
 		{
-			led_eye_off();
+			led_switch = false;
+			if (filter_eye_led_redundant_step(eye_led_event, led_switch))
+			{
+				if (!led_eye_off())
+				{
+					led_eye_off();
+				}
+			}
 		}
 		else if ((curr_time - eye_time) >= 7500 && (curr_time - eye_time) < 9000)
 		{
-			led_eye_on();
+			led_switch = true;
+			if (filter_eye_led_redundant_step(eye_led_event, led_switch))
+			{
+				if (!led_eye_on())
+				{
+					led_eye_on();
+				}
+			}
 		}else if ((curr_time - eye_time) >= 9000 && (curr_time - eye_time) < 17000)
 		{
-			led_eye_off();
+			led_switch = false;
+			if (filter_eye_led_redundant_step(eye_led_event, led_switch))
+			{
+				if (!led_eye_off())
+				{
+					led_eye_off();
+				}
+			}
 		}
 		else
 		{
+			led_switch = true;
 			temp_eye_time_flag = 1;
-			led_eye_on();
+			if (filter_eye_led_redundant_step(eye_led_event, led_switch))
+			{
+				if (!led_eye_on())
+				{
+					led_eye_on();
+				}
+			}
 		}
 	}
 }
@@ -216,8 +416,7 @@ static void ear_led_flicker_status(int ear_led_event, int ear_led_flicker_switch
 	static long int ear_time = 0;
 	long int curr_time = 0;
 	static int temp_ear_time_flag = 1;
-
-	//temp_ear_time_flag = ear_time_flag;
+	bool led_switch = true;
 	
 	if (ear_led_event == APP_EVENT_LED_CTRL_EAR_500_MS_FLICKER && ear_led_flicker_switch == EAR_LED_FLICKER_ON)
 	{
@@ -229,17 +428,38 @@ static void ear_led_flicker_status(int ear_led_event, int ear_led_flicker_switch
 		
 		if ((curr_time - ear_time) >= 0 && (curr_time - ear_time) < 500)
 		{
+			led_switch = true;
 			temp_ear_time_flag = 0;
-			led_ear_on();
+			if (filter_ear_led_redundant_step(ear_led_event, led_switch))
+			{
+				if (!led_ear_on())
+				{
+					led_ear_on();
+				}
+			}
 		}
 		else if ((curr_time - ear_time) >= 500 && (curr_time - ear_time) < 1000)
 		{
-			led_ear_off();
+			led_switch = false;
+			if (filter_ear_led_redundant_step(ear_led_event, led_switch))
+			{
+				if (!led_ear_off())
+				{
+					led_ear_off();
+				}
+			}
 		}
 		else
 		{
+			led_switch = true;
 			temp_ear_time_flag = 1;
-			led_ear_on();
+			if (filter_ear_led_redundant_step(ear_led_event, led_switch))
+			{
+				if (!led_ear_on())
+				{
+					led_ear_on();
+				}
+			}
 		}
 	}
 }
@@ -350,6 +570,11 @@ static void led_event_callback(void *app, APP_EVENT_MSG_t *msg)
 			temp_ear_led_event = msg->event;
 			ear_time_flag = 1;
 			set_ear_led_state(APP_EVENT_LED_CTRL_EAR_500_MS_FLICKER);
+			break;
+		}
+		case APP_EVENT_DEFAULT_EXIT:
+		{
+			app_exit(app);
 			break;
 		}
 		default:

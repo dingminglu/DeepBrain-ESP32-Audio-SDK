@@ -19,14 +19,32 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
+#define SUPPORT_DUAL_CORE 0
+
 bool task_thread_create(
 	void (*task_func)(void *), 
 	const char * const task_name,
 	const uint32_t static_size,
 	void * const task_params,
 	const uint32_t task_priority)
-{
-	if (xTaskCreate(task_func, task_name, static_size, task_params, task_priority, NULL) != pdPASS) 
+{	
+#if SUPPORT_DUAL_CORE == 1
+	if (xTaskCreate(
+		task_func, 
+		task_name, 
+		static_size, 
+		task_params, 
+		task_priority, 
+		NULL) != pdPASS) 
+#else
+	if (xTaskCreatePinnedToCore(
+		task_func, 
+		task_name, 
+		static_size, 
+		task_params, 
+		task_priority, 
+		NULL, 0) != pdPASS) 
+#endif
     {
         return false;
     }

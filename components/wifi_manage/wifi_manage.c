@@ -15,6 +15,8 @@
 
 #define LOG_TAG "wifi manage"
 
+#define ENABLE_WIFI_SLEEP 0
+
 //wifi ap server handle
 typedef struct WIFI_AP_SERVER_HANDLE_t
 {
@@ -314,22 +316,29 @@ static esp_err_t wifi_event_handle_cb(void* ctx, system_event_t* evt)
  */
 static bool start_wifi_sta_mode(void)
 {
+	static bool is_wifi_init = false;
+	static bool is_wifi_start = false;
 	wifi_mode_t mode = WIFI_MODE_NULL;
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();	
 
 	//关闭smartconfig
 	esp_smartconfig_stop();
-	
-    if (esp_wifi_init(&cfg) != ESP_OK)
-    {
-		DEBUG_LOGE(LOG_TAG, "esp_wifi_init failed");
-		return false;
-	}
-	else
+	if (!is_wifi_init)
 	{
-		if (esp_wifi_set_ps(WIFI_PS_MODEM) != ESP_OK)
-		{
-			DEBUG_LOGE(LOG_TAG, "esp_wifi_set_ps DEFAULT_PS_MODE failed");
+	    if (esp_wifi_init(&cfg) == ESP_OK)
+	    {
+			is_wifi_init = true;
+#if ENABLE_WIFI_SLEEP == 1
+			if (esp_wifi_set_ps(WIFI_PS_MODEM) != ESP_OK)
+			{
+				DEBUG_LOGE(LOG_TAG, "esp_wifi_set_ps DEFAULT_PS_MODE failed");
+			}
+#endif
+		}
+		else
+	    {
+			DEBUG_LOGE(LOG_TAG, "esp_wifi_init failed");
+			return false;
 		}
 	}
 
@@ -371,11 +380,18 @@ static bool start_wifi_sta_mode(void)
     	DEBUG_LOGE(LOG_TAG, "esp_wifi_set_mode failed");
 		return false;
 	}
-	
-	if (esp_wifi_start() != ESP_OK)
+
+	if (!is_wifi_start)
 	{
-		DEBUG_LOGE(LOG_TAG, "esp_wifi_start failed");
-		return false;
+		if (esp_wifi_start() == ESP_OK)
+		{
+			is_wifi_start = true;
+		}
+		else
+		{
+			DEBUG_LOGE(LOG_TAG, "esp_wifi_start failed");
+			return false;
+		}
 	}
 
 	return true;
@@ -526,16 +542,7 @@ static bool stop_wifi_smartconfig_mode(void)
  */
 static bool wifi_connect(const DEVICE_WIFI_INFO_T *wifi_info)
 {
-	wifi_config_t w_config = 
-	{
-		.sta = 
-		{
-	        .ssid = "",
-	        .password = "",
-	        .bssid_set = false
-        }
-    };
-	
+	wifi_config_t w_config = {0};
 
 	if (wifi_info == NULL)
 	{
@@ -1013,7 +1020,7 @@ static void wifi_event_process(WIFI_MANAGE_HANDLE_t *handle)
         }
 		case WIFI_MANAGE_STATUS_STA_CONNECT_WAIT:
 		{
-			if (abs(get_time_of_day() - handle->connecting_start_time) >= 6000)
+			if (abs(get_time_of_day() - handle->connecting_start_time) >= 8000)
 			{
 				set_wifi_manage_status(WIFI_MANAGE_STATUS_STA_CONNECT_FAIL);
 			}
@@ -1140,6 +1147,11 @@ static void wifi_event_callback(
 			{
 				set_wifi_manage_status(WIFI_MANAGE_STATUS_STA_DISCONNECTED);
 			}
+			else if (get_wifi_manage_status() == WIFI_MANAGE_STATUS_STA_CONNECT_WAIT)
+			{
+				set_wifi_manage_status(WIFI_MANAGE_STATUS_STA_CONNECT_FAIL);
+			}
+			
 			app_send_message(APP_NAME_WIFI_MANAGE, APP_MSG_TO_ALL, APP_EVENT_WIFI_DISCONNECTED, NULL, 0);
 			break;
 		}
