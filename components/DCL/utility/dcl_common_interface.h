@@ -24,11 +24,11 @@
 
 //#define DCL_TEST_MODE		//测试环境
 //#define DCL_DEMO_MODE 	//demo环境
-#define DCL_NORMAL_MODE		//正式环境
+#define DCL_NORMAL_MODE	//正式环境
 
 //dcl api请求URL
 #ifdef DCL_TEST_MODE
-#define DCL_SERVER_API_URL  "http://192.168.20.14:9030/open-api/service"
+#define DCL_SERVER_API_URL  "http://api-test.deepbrain.ai/open-api/service"
 #endif
 
 #ifdef DCL_DEMO_MODE
@@ -41,7 +41,7 @@
 
 //dcl语义请求URL
 #ifdef DCL_TEST_MODE
-#define DCL_NLP_API_URL  "http://192.168.20.14:9030/deep-brain-api/ask"
+#define DCL_NLP_API_URL  "http://api-test.deepbrain.ai/deep-brain-api/ask"
 #endif
 
 #ifdef DCL_DEMO_MODE
@@ -54,7 +54,7 @@
 
 //dcl asr请求URL
 #ifdef DCL_TEST_MODE
-#define DCL_ASR_API_URL  "http://192.168.20.14:9030/open-api/asr/recognise"
+#define DCL_ASR_API_URL  "http://asr-test.deepbrain.ai/open-api/asr/recognise"
 #endif
 
 #ifdef DCL_DEMO_MODE
@@ -65,10 +65,16 @@
 #define DCL_ASR_API_URL "http://asr.deepbrain.ai/open-api/asr/recognise"
 #endif
 
+#ifdef DCL_TEST_MODE
+#define MPUSH_GET_SERVER_URL 		"http://message-test.deepbrain.ai/open-api/testFetchMessageServers"
+#define MPUSH_SEND_MSG_URL 	 		"http://message-test.deepbrain.ai/open-api/testSendMessage"
+#define MPUSH_GET_OFFLINE_MSG_URL 	"http://message-test.deepbrain.ai/open-api/testFetchOfflineMessage"
+#endif
+
 #ifdef DCL_DEMO_MODE
-#define MPUSH_GET_SERVER_URL 		"http://192.168.20.91:9034/open-api/testFetchMessageServers"
-#define MPUSH_SEND_MSG_URL 	 		"http://192.168.20.91:9034/open-api/testSendMessage"
-#define MPUSH_GET_OFFLINE_MSG_URL 	"http://192.168.20.91:9034/open-api/testFetchOfflineMessage"
+#define MPUSH_GET_SERVER_URL 		"http://message-demo.deepbrain.ai/open-api/testFetchMessageServers"
+#define MPUSH_SEND_MSG_URL 	 		"http://message-demo.deepbrain.ai/open-api/testSendMessage"
+#define MPUSH_GET_OFFLINE_MSG_URL 	"http://message-demo.deepbrain.ai/open-api/testFetchOfflineMessage"
 #endif
 
 #ifdef DCL_NORMAL_MODE

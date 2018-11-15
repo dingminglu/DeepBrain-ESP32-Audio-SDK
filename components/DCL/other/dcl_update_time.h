@@ -13,31 +13,23 @@
  * permissions and limitations under the License.
  */
 
-#ifndef TIME_INTERFACE_H
-#define TIME_INTERFACE_H
+#ifndef DCL_UPDATE_TIME_H
+#define DCL_UPDATE_TIME_H
 
+#include "dcl_interface.h"
 #include "ctypes_interface.h"
 
 #ifdef __cplusplus
-extern "C" {
+ extern "C" {
 #endif
 
-/**
- * get current time in ms
- *
- * @param void
- * @return current time in ms
- */
-uint64_t get_time_of_day(void);
-
-void get_time_stamp_string(
-	uint8_t * str_time, 
-	const uint32_t str_time_len);
-
+DCL_ERROR_CODE_t dcl_update_time(
+	const DCL_AUTH_PARAMS_t* const input_params,
+	const uint32_t unix_time_stamp);
 
 #ifdef __cplusplus
-}
+ }
 #endif
 
-#endif //TIME_INTERFACE_H
+#endif /* DCL_UPDATE_TIME_H */
 

@@ -6,6 +6,7 @@
 #include "wifi_hw_interface.h"
 #include "http_api.h"
 #include "device_info_interface.h"
+#include "dcl_update_device_info.h"
 
 #define LOG_TAG "MPUSH_SERVICE"
 
@@ -564,62 +565,157 @@ void mpush_client_receive(MPUSH_SERVICE_HANDLER_t *pHandler)
 	mpush_client_process_msg(pHandler, ret, &msg_head);
 }
 
+#if AMC_WEIXIN_CLOUD_ENABLE == 1
+//支持微信模式
+static bool mpush_get_device_license(MPUSH_SERVICE_HANDLER_t *handler)
+{
+	char chip_id[64] = {0};
+	
+	//设备激活操作，获取设备唯一序列号
+	get_device_id(chip_id, sizeof(chip_id));
+	if (!get_dcl_auth_params(&handler->auth_params))
+	{
+		DEBUG_LOGE(LOG_TAG, "get_dcl_auth_params failed"); 
+		return false;
+	}
+	
+	if (dcl_get_device_license(
+			&handler->auth_params, 
+			(uint8_t *)DEVICE_SN_PREFIX, 
+			(uint8_t *)chip_id, 
+			true, 
+			&handler->dcl_license) == DCL_ERROR_CODE_OK)
+	{
+		get_flash_cfg(FLASH_CFG_DEVICE_LICENSE, &handler->device_license);
+		
+		snprintf(handler->device_license.device_sn, sizeof(handler->device_license.device_sn),
+			"%s", handler->dcl_license.wechat_device_id);
+		snprintf(handler->device_license.weixin_dev_type, sizeof(handler->device_license.weixin_dev_type),
+			"%s", handler->dcl_license.wechat_device_type);
+		snprintf(handler->device_license.weixin_dev_license, sizeof(handler->device_license.weixin_dev_license),
+			"%s", handler->dcl_license.wechat_device_license);
+		
+		if (set_flash_cfg(FLASH_CFG_DEVICE_LICENSE, (void*)&handler->device_license) != DEVICE_PARAMS_ERRNO_OK)
+		{
+			DEBUG_LOGE(LOG_TAG, "set_flash_cfg FLASH_CFG_DEVICE_ID failed"); 
+			return false;
+		}
+	}
+	else
+	{
+		DEBUG_LOGE(LOG_TAG, "dcl_get_device_license failed");
+		return false;
+	}
+
+	return true;
+}
+
+
+#else
+//支持app模式
+static bool mpush_get_device_license(MPUSH_SERVICE_HANDLER_t *handler)
+{
+	char chip_id[64] = {0};
+	
+	//设备激活操作，获取设备唯一序列号
+	get_device_id(chip_id, sizeof(chip_id));
+	if (!get_dcl_auth_params(&handler->auth_params))
+	{
+		DEBUG_LOGE(LOG_TAG, "get_dcl_auth_params failed"); 
+		return false;
+	}
+	
+	if (dcl_get_device_license(
+			&handler->auth_params, 
+			(uint8_t *)DEVICE_SN_PREFIX, 
+			(uint8_t *)chip_id, 
+			false, 
+			&handler->dcl_license) == DCL_ERROR_CODE_OK)
+	{
+		if (set_flash_cfg(FLASH_CFG_DEVICE_ID, (void*)&handler->dcl_license.device_sn) != DEVICE_PARAMS_ERRNO_OK)
+		{
+			DEBUG_LOGE(LOG_TAG, "set_flash_cfg FLASH_CFG_DEVICE_ID failed"); 
+			return false;
+		}
+	}
+	else
+	{
+		DEBUG_LOGE(LOG_TAG, "dcl_get_device_license failed");
+		return false;
+	}
+
+	return true;
+}
+
+
+#endif
+
 static void mpush_client_process(MPUSH_SERVICE_HANDLER_t *pHandler)
 {
+	static uint32_t update_device_info_count = 0;
 	static uint32_t heart_time = 0;
 
 	switch (mpush_get_run_status(pHandler))
 	{
 		case MPUSH_STAUTS_INIT:
 		{
-			char chip_id[32] = {0};
-			char device_sn[32] = {0};
+			char device_sn[64] = {0};
+	
 			get_flash_cfg(FLASH_CFG_DEVICE_ID, device_sn);
 			if (strlen(device_sn) > 0)
 			{
-				snprintf((char*)&pHandler->msg_cfg.str_device_id, sizeof(pHandler->msg_cfg.str_device_id), "%s", device_sn);
-				mpush_set_run_status(pHandler, MPUSH_STAUTS_GET_SERVER_LIST);
+				snprintf((char*)&pHandler->msg_cfg.str_device_id, sizeof(pHandler->msg_cfg.str_device_id), 
+					"%s", device_sn);
+				mpush_set_run_status(pHandler, MPUSH_STAUTS_UPDATE_DEVICE_INFO);
 				break;
 			}
-			
-			//设备激活操作，获取设备唯一序列号
-			get_device_id(chip_id, sizeof(chip_id));
-
+		
+			if (mpush_get_device_license(pHandler))
+			{
+				//激活成功提示音
+				snprintf((char*)&pHandler->msg_cfg.str_device_id, sizeof(pHandler->msg_cfg.str_device_id), 
+					"%s", pHandler->device_license.device_sn);
+				DEBUG_LOGI(LOG_TAG, "mpush_get_device_license success");	
+				update_device_info_count = 0;
+				mpush_set_run_status(pHandler, MPUSH_STAUTS_UPDATE_DEVICE_INFO);
+				audio_play_tone_mem(FLASH_MUSIC_DYY_DEVICE_ACTIVATE_OK, TERMINATION_TYPE_DONE);
+			}
+			else
+			{
+				//激活失败提示音
+				DEBUG_LOGE(LOG_TAG, "mpush_get_device_license fail");	
+				audio_play_tone_mem(FLASH_MUSIC_DYY_DEVICE_ACTIVATE_FAIL, TERMINATION_TYPE_DONE);
+				task_thread_sleep(5000);
+			}
+			break;
+		}
+		case MPUSH_STAUTS_UPDATE_DEVICE_INFO:
+		{
+			//更新设备信息至服务器
 			if (!get_dcl_auth_params(&pHandler->auth_params))
 			{
 				DEBUG_LOGE(LOG_TAG, "get_dcl_auth_params failed"); 
 				task_thread_sleep(5000);
 				break;
 			}
-			
-			if (dcl_get_device_license(
-					&pHandler->auth_params, 
-					(uint8_t *)DEVICE_SN_PREFIX, 
-					(uint8_t *)chip_id, 
-					false, 
-					&pHandler->dcl_license) == DCL_ERROR_CODE_OK)
-			{
-				DEBUG_LOGI(LOG_TAG, "dcl_get_device_license success");
 
-				if (set_flash_cfg(FLASH_CFG_DEVICE_ID, (void*)&pHandler->dcl_license.device_sn) != DEVICE_PARAMS_ERRNO_OK)
-				{
-					DEBUG_LOGE(LOG_TAG, "set_flash_cfg FLASH_CFG_DEVICE_ID failed"); 
-					task_thread_sleep(5000);
-					break;
-				}
-				
+			if (dcl_update_device_info(
+				&pHandler->auth_params,
+				ESP32_FW_VERSION) == DCL_ERROR_CODE_OK)
+			{
+				DEBUG_LOGI(LOG_TAG, "dcl_update_device_info success");
 				mpush_set_run_status(pHandler, MPUSH_STAUTS_GET_SERVER_LIST);
-				//激活成功提示音
-				audio_play_tone_mem(FLASH_MUSIC_DYY_DEVICE_ACTIVATE_OK, TERMINATION_TYPE_DONE);
 			}
 			else
 			{
-				DEBUG_LOGE(LOG_TAG, "dcl_get_device_license fail");				
-				//激活失败提示音
-				audio_play_tone_mem(FLASH_MUSIC_DYY_DEVICE_ACTIVATE_FAIL, TERMINATION_TYPE_DONE);
+				update_device_info_count++;
+				if (update_device_info_count >= 3)
+				{
+					mpush_set_run_status(pHandler, MPUSH_STAUTS_GET_SERVER_LIST);
+				}
+				DEBUG_LOGE(LOG_TAG, "dcl_update_device_info fail");	
 				task_thread_sleep(5000);
 			}
-			break;
 		}
 		case MPUSH_STAUTS_GET_SERVER_LIST:
 		{

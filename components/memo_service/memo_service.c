@@ -26,173 +26,6 @@
 
 MEMO_SERVICE_HANDLE_T *memo_struct_handle = NULL;
 
-static int get_net_time(void)
-{	
-   	sock_t	 sock	 = INVALID_SOCK;
- 	cJSON	*pJson   = NULL;
-
-	TEMP_PARAM_T *temp = (TEMP_PARAM_T *)memory_malloc(sizeof(TEMP_PARAM_T));
-	if (NULL == temp)
-	{
-		return -1;
-	}
-	memset(temp, 0, sizeof(TEMP_PARAM_T));
-	
-	if (sock_get_server_info(DeepBrain_TEST_URL, temp->domain, temp->port, temp->params) != 0)
-	{
-		DEBUG_LOGE(PRINT_TAG, "get_net_time, sock_get_server_info fail\r\n");
-		goto get_net_time_error;
-	}
-
-	sock = sock_connect(temp->domain, temp->port);
-	if (sock == INVALID_SOCK)
-	{
-		DEBUG_LOGE(PRINT_TAG, "get_net_time, sock_connect fail,%s,%s\r\n", temp->domain, temp->port);
-		goto get_net_time_error;
-	}
-
-	sock_set_nonblocking(sock);
-	
-	crypto_generate_request_id(temp->str_nonce, sizeof(temp->str_nonce));
-	get_flash_cfg(FLASH_CFG_DEVICE_ID, temp->str_device_id);
-	snprintf(temp->str_comm_buf, sizeof(temp->str_comm_buf), 
-		"{\"app_id\": \"%s\","
-		"\"content\":{},"
-		"\"device_id\": \"%s\","
-		"\"request_id\": \"%s\","
-		"\"robot_id\": \"%s\","
-		"\"service\": \"DeepBrainTimingVerificationService\","
-		"\"user_id\": \"%s\","
-		"\"version\": \"2.0.0.0\"}",
-		DEEP_BRAIN_APP_ID, 
-		temp->str_device_id, temp->str_nonce, DEEP_BRAIN_ROBOT_ID, temp->str_device_id);
-	
-	crypto_generate_nonce((uint8_t *)temp->str_nonce, sizeof(temp->str_nonce));
-	crypto_time_stamp((unsigned char*)temp->str_timestamp, sizeof(temp->str_timestamp));
-	crypto_generate_private_key((uint8_t *)temp->str_private_key, sizeof(temp->str_private_key), temp->str_nonce, temp->str_timestamp, DEEP_BRAIN_ROBOT_ID);
-	snprintf(temp->str_buf, sizeof(temp->str_buf), 
-		"POST %s HTTP/1.0\r\n"
-		"Host: %s:%s\r\n"
-		"Accept: application/json\r\n"
-		"Accept-Language: zh-cn\r\n"
-		"Content-Length: %d\r\n"
-		"Content-Type: application/json\r\n"
-		"Nonce: %s\r\n"
-		"CreatedTime: %s\r\n"
-		"PrivateKey: %s\r\n"
-		"Key: %s\r\n"
-		"Connection:close\r\n\r\n", 
-		temp->params, temp->domain, temp->port, strlen(temp->str_comm_buf), temp->str_nonce, temp->str_timestamp, temp->str_private_key, DEEP_BRAIN_ROBOT_ID);
-
-	//DEBUG_LOGE(PRINT_TAG, "%s", str_buf);
-	//DEBUG_LOGE(PRINT_TAG, "%s", _pHandler->str_comm_buf);
-	if (sock_writen_with_timeout(sock, temp->str_buf, strlen(temp->str_buf), 1000) != strlen(temp->str_buf)) 
-	{
-		printf("sock_writen http header fail\r\n");
-		goto get_net_time_error;
-	}
-	
-	if (sock_writen_with_timeout(sock, temp->str_comm_buf, strlen(temp->str_comm_buf), 3000) != strlen(temp->str_comm_buf)) 
-	{
-		printf("sock_writen http body fail\r\n");
-		goto get_net_time_error;
-	}
-
-	/* Read HTTP response */
-	memset(temp->str_comm_buf, 0, sizeof(temp->str_comm_buf));
-	sock_readn_with_timeout(sock, temp->str_comm_buf, sizeof(temp->str_comm_buf) - 1, 8000);
-	sock_close(sock);
-	sock = INVALID_SOCK;
-
-	if (http_get_error_code(temp->str_comm_buf) == 200)
-	{	
-		DEBUG_LOGE(PRINT_TAG, "str_comm_buf = %s\r\n", temp->str_comm_buf);
-		char* pBody = http_get_body(temp->str_comm_buf);
-		if (NULL != pBody)
-		{
-			pJson = cJSON_Parse(pBody);
-			if (NULL != pJson) 
-			{
-				cJSON *pJson_status = cJSON_GetObjectItem(pJson, "statusCode");
-				if (NULL == pJson_status || pJson_status->valuestring == NULL)
-				{
-					DEBUG_LOGE(PRINT_TAG, "get_net_time, statusCode not found");
-					goto get_net_time_error;
-				}
-
-				if (strncasecmp(pJson_status->valuestring, "OK", 2) != 0)
-				{
-					DEBUG_LOGE(PRINT_TAG, "get_net_time, statusCode:%s", pJson_status->valuestring);
-					goto get_net_time_error;
-				}
-				DEBUG_LOGI(PRINT_TAG, "get_net_time, statusCode:%s", pJson_status->valuestring);
-
-				/* 获取时间 */
-				cJSON *pJson_content = cJSON_GetObjectItem(pJson, "content");
-				if (NULL == pJson_content || pJson_content->child == NULL)
-				{
-					DEBUG_LOGE(PRINT_TAG, "get_net_time, pJson_content not found");
-					goto get_net_time_error;
-				}
-	 			cJSON *pJson_content_time = cJSON_GetObjectItem(pJson_content, "currentTimeMillis");
-				if (NULL == pJson_content_time || (uint32_t)(pJson_content_time->valuedouble/1000) == 0)
-				{
-					DEBUG_LOGE(PRINT_TAG, "get_net_time, pJson_content_time not found");
-					goto get_net_time_error;
-				}
-
-				memo_struct_handle->initial_time_usec = (uint32_t)pJson_content_time->valuedouble;
-				memo_struct_handle->initial_time_sec  = (uint32_t)(pJson_content_time->valuedouble/1000);
-				
-				DEBUG_LOGE(PRINT_TAG, "valuedouble = [%f]",pJson_content_time->valuedouble);
-			}
-			else
-			{
-				DEBUG_LOGE(PRINT_TAG, "get_net_time, invalid json[%s]", temp->str_comm_buf);
-			}
-			
-			if (NULL != pJson) {
-				cJSON_Delete(pJson);
-				pJson = NULL;
-			}
-		}
-	}
-	else
-	{
-		DEBUG_LOGE(PRINT_TAG, "get_net_time, http reply error[%s]", temp->str_comm_buf);
-		goto get_net_time_error;
-	}
-
-	if (NULL != temp)
-	{
-		memory_free(temp);
-		temp = NULL;
-	}
-	
-	return 0;
-	
-get_net_time_error:
-	
-	if (sock != INVALID_SOCK) 
-	{
-		sock_close(sock);
-	}
-	
-	if (NULL != pJson) 
-	{
-		cJSON_Delete(pJson);
-		pJson = NULL;
-	}
-
-	if (NULL != temp)
-	{
-		memory_free(temp);
-		temp = NULL;
-	}
-	
-	return -1;
-}
-
 int get_memo_result(char *str_body)
 {
 	time_t exe_time = 0;
@@ -333,15 +166,26 @@ get_memo_result_error:
 //初始化时钟
 static void init_clock(MEMO_SERVICE_HANDLE_T *handle)
 {
-	if (get_net_time())
+	uint32_t time_now = 0;
+	
+	if (!get_dcl_auth_params(&handle->auth_params))
 	{
+		DEBUG_LOGE(PRINT_TAG, "get_dcl_auth_params failed"); 
+		task_thread_sleep(3000);
+		return;
+	}
+
+	if (dcl_update_time(&handle->auth_params, &time_now) != DCL_ERROR_CODE_OK)
+	{
+		DEBUG_LOGE(PRINT_TAG, "dcl_update_time failed"); 
+		task_thread_sleep(3000);
 		return;
 	}
 
 	//校准系统时钟
  	struct timeval tv = { 
-		.tv_sec  = handle->initial_time_sec,
-		.tv_usec = handle->initial_time_usec
+		.tv_sec  = time_now,
+		.tv_usec = 0
 	};
 	settimeofday(&tv, NULL);
 	update_power_mng_sleep_time();

@@ -19,6 +19,8 @@
 #include "userconfig.h"
 #include "device_params_manage.h"
 #include "dcl_tts_api.h"
+#include "interf_enc.h"
+#include "audio_amrnb_interface.h"
 
 #define LOG_TAG "asr service" 
 
@@ -97,6 +99,98 @@ static APP_FRAMEWORK_ERRNO_t pcm_queue_first(
 }
 
 /**
+ * convert pcm to amr
+ *
+ * @param [in]asr_service_handle
+ * @param [in]pcm_obj
+ * @return true/false
+ */
+static bool convert_pcm_to_amr(
+	ASR_SERVICE_HANDLE_t *asr_service_handle, 
+	ASR_PCM_OBJECT_t *pcm_obj)
+{
+	static void *amrnb_encode = NULL;
+	ASR_RECORD_BUFFER_t *record_buffer = NULL;
+
+	if (asr_service_handle == NULL 
+		|| pcm_obj == NULL)
+	{
+		return false;
+	}
+
+	record_buffer = &asr_service_handle->record_buffer;
+
+	//降采样,16k 转 8k
+	short * src = (short *)pcm_obj->record_data;
+	short * dst = (short *)(record_buffer->record_data_8k + record_buffer->record_data_8k_len);
+	int 	total_buffer_len = sizeof(record_buffer->record_data_8k);
+	int 	samples = pcm_obj->record_len/2;
+	int 	idx = 0;
+	
+	if (record_buffer->record_data_8k_len + samples > total_buffer_len)
+	{
+		DEBUG_LOGE(LOG_TAG, "wechat_pcm_to_8k out of buffer");
+		return false;
+	}
+	
+	for (idx = 0; idx < samples; idx += 2) 
+	{
+		dst[idx/2] = src[idx];
+	}
+	record_buffer->record_data_8k_len += samples;
+
+	//8k pcm 转 amr
+	//创建amrnb句柄
+	if (amrnb_encode == NULL)
+	{
+		amrnb_encode = Encoder_Interface_init(0);
+		if (amrnb_encode == NULL)
+		{	
+			DEBUG_LOGE(LOG_TAG, "Encoder_Interface_init failed");
+			return false;
+		}
+	}
+
+	//amrnb编码
+	const int enc_frame_size = AMRNB_ENCODE_OUT_BUFF_SIZE;
+	const int pcm_frame_size = AMRNB_ENCODE_IN_BUFF_SIZE;
+	
+	//8k pcm 转 amrnb
+	if (record_buffer->first_frame)
+	{
+		snprintf(record_buffer->amrnb_data, sizeof(record_buffer->amrnb_data), "%s", AMRNB_HEADER);
+		record_buffer->amrnb_data_len = strlen(AMRNB_HEADER);
+		record_buffer->first_frame = false;
+	}
+	
+	int i = 0;
+	for (i=0; (i * pcm_frame_size) < record_buffer->record_data_8k_len; i++)
+	{
+		if ((record_buffer->amrnb_data_len + enc_frame_size) > sizeof(record_buffer->amrnb_data))
+		{
+			DEBUG_LOGE(LOG_TAG, "wechat_amrnb_encode size is out of buffer");
+			break;
+		}
+
+		int ret = Encoder_Interface_Encode(amrnb_encode, MR122, 
+				(short*)(record_buffer->record_data_8k + i * pcm_frame_size), 
+				(unsigned char*)record_buffer->amrnb_data + record_buffer->amrnb_data_len, 0);
+		if (ret > 0)
+		{
+			record_buffer->amrnb_data_len += ret;
+			record_buffer->amrnb_record_ms += 20;
+		}
+		else
+		{
+			DEBUG_LOGE(LOG_TAG, "Encoder_Interface_Encode failed[%d]", ret);
+		}
+	}
+	record_buffer->record_data_8k_len = 0;
+
+	return true;
+}	
+
+/**
  * @brief  remove pcm queue 
  * @param  [out]pcm_obj
  * @return app framework errno
@@ -127,6 +221,7 @@ static void asr_rec_begin(
 	ASR_SERVICE_HANDLE_t *asr_service_handle, 
 	ASR_PCM_OBJECT_t *pcm_obj)
 {
+	DCL_RECORD_FORMAT_t record_format = DCL_RECORD_FORMAT_16K_PCM;
 	ASR_RESULT_t *asr_result = &asr_service_handle->asr_result;
 	DCL_AUTH_PARAMS_t *auth_params = &asr_service_handle->auth_params;
 	memset(asr_result, 0, sizeof(ASR_RESULT_t));
@@ -162,9 +257,19 @@ static void asr_rec_begin(
 			}
 			
 			get_dcl_auth_params(auth_params);
+#if ASR_FORMAT_AMR_ENABLE == 1
+			record_format = DCL_RECORD_FORMAT_8K_AMR;
+			dcl_asr_set_param(asr_service_handle->dcl_asr_handle, DCL_ASR_PARAMS_INDEX_RECORD_FORMAT, &record_format, sizeof(record_format));
+#else
+			record_format = DCL_RECORD_FORMAT_16K_PCM;
+			dcl_asr_set_param(asr_service_handle->dcl_asr_handle, DCL_ASR_PARAMS_INDEX_RECORD_FORMAT, &record_format, sizeof(record_format));
+#endif
 			dcl_asr_set_param(asr_service_handle->dcl_asr_handle, DCL_ASR_PARAMS_INDEX_LANGUAGE, &pcm_obj->asr_lang, sizeof(pcm_obj->asr_lang));
 			dcl_asr_set_param(asr_service_handle->dcl_asr_handle, DCL_ASR_PARAMS_INDEX_MODE, &pcm_obj->asr_mode, sizeof(pcm_obj->asr_mode));
 			dcl_asr_set_param(asr_service_handle->dcl_asr_handle, DCL_ASR_PARAMS_INDEX_AUTH_PARAMS, auth_params, sizeof(DCL_AUTH_PARAMS_t));
+
+			memset(&asr_service_handle->record_buffer, 0, sizeof(asr_service_handle->record_buffer));
+			asr_service_handle->record_buffer.first_frame = true;
 			break;
 		}
 		default:
@@ -185,6 +290,7 @@ static void asr_rec_runing(
 	int ret = 0;
 	int i = 0;
 	ASR_RESULT_t *asr_result = &asr_service_handle->asr_result;
+	ASR_RECORD_BUFFER_t *record_buffer = &asr_service_handle->record_buffer;
 	
 	switch (pcm_obj->asr_engine)
 	{
@@ -195,6 +301,28 @@ static void asr_rec_runing(
 				break;
 			}
 			
+#if ASR_FORMAT_AMR_ENABLE == 1
+			convert_pcm_to_amr(asr_service_handle, pcm_obj);
+
+			if (record_buffer->amrnb_record_ms < 500)
+			{
+				break;
+			}
+
+			ret = dcl_asr_audio_write(asr_service_handle->dcl_asr_handle, record_buffer->amrnb_data, record_buffer->amrnb_data_len);
+			if (ret == DCL_ERROR_CODE_OK)
+			{
+				record_buffer->amrnb_data_len = 0;
+				record_buffer->amrnb_record_ms = 0;
+			}
+			else
+			{
+				asr_result->error_code = ret;
+				dcl_asr_session_end(asr_service_handle->dcl_asr_handle);
+				asr_service_handle->dcl_asr_handle = NULL;
+				DEBUG_LOGE(LOG_TAG, "dcl_asr_audio_write failed errno[%d]", ret); 
+			}	
+#else
 			ret = dcl_asr_audio_write(asr_service_handle->dcl_asr_handle, pcm_obj->record_data, pcm_obj->record_len);
 			if (ret != DCL_ERROR_CODE_OK)
 			{
@@ -203,6 +331,7 @@ static void asr_rec_runing(
 				asr_service_handle->dcl_asr_handle = NULL;
 				DEBUG_LOGE(LOG_TAG, "dcl_asr_audio_write failed errno[%d]", ret); 
 			}
+#endif
 			break;
 		}
 		default:
@@ -220,10 +349,12 @@ static void asr_rec_end(
 	ASR_SERVICE_HANDLE_t *asr_service_handle, 
 	ASR_PCM_OBJECT_t *pcm_obj)
 {
+	int ret = 0;
 	DCL_ERROR_CODE_t err_code = DCL_ERROR_CODE_OK;
 	uint64_t asr_cost = 0;
 	uint64_t start_time = get_time_of_day();
 	ASR_RESULT_t *asr_result = &asr_service_handle->asr_result;
+	ASR_RECORD_BUFFER_t *record_buffer = &asr_service_handle->record_buffer;
 	
 	switch (pcm_obj->asr_engine)
 	{
@@ -234,6 +365,21 @@ static void asr_rec_end(
 				break;
 			}
 
+#if ASR_FORMAT_AMR_ENABLE == 1
+			if (record_buffer->amrnb_data_len > 0)
+			{
+				ret = dcl_asr_audio_write(asr_service_handle->dcl_asr_handle, record_buffer->amrnb_data, record_buffer->amrnb_data_len);
+				if (ret == DCL_ERROR_CODE_OK)
+				{
+					record_buffer->amrnb_data_len = 0;
+				}
+				else
+				{
+					asr_result->error_code = ret;
+					DEBUG_LOGE(LOG_TAG, "dcl_asr_audio_write failed errno[%d]", ret); 
+				}	
+			}			
+#endif
 			err_code = dcl_asr_get_result(asr_service_handle->dcl_asr_handle, asr_result->str_result, sizeof(asr_result->str_result));
 			if (err_code != DCL_ERROR_CODE_OK)
 			{

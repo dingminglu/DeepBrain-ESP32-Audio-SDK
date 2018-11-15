@@ -26,6 +26,18 @@ extern "C" {
 
 #define ASR_MIN_AUDIO_MS 1000
 
+/* asr record BUFFER */
+typedef struct ASR_RECORD_BUFFER_t
+{
+	bool 	 first_frame;	//是否是第一帧
+	char 	 record_data_8k[RAW_PCM_LEN_MS(1000, PCM_SAMPLING_RATE_8K)];//8k pcm数据
+	uint32_t record_data_8k_len;										//8k pcm数据长度
+
+	char amrnb_data[3200];	//amrnb录音
+	uint32_t amrnb_data_len;//amrnb数据长度
+	uint32_t amrnb_record_ms;//录音时长
+}ASR_RECORD_BUFFER_t;
+
 /* asr service running handle */
 typedef struct ASR_SERVICE_HANDLE_t
 {
@@ -40,6 +52,9 @@ typedef struct ASR_SERVICE_HANDLE_t
 
 	//auth params
 	DCL_AUTH_PARAMS_t auth_params;
+
+	//asr record buffer
+	ASR_RECORD_BUFFER_t record_buffer;
 
 	//mutex lock
 	void *mutex_lock;

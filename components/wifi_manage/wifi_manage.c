@@ -33,6 +33,7 @@ typedef struct WIFI_MANAGE_HANDLE_t
 	WIFI_AP_SERVER_HANDLE_t ap_server;
 	DEVICE_WIFI_INFOS_T wifi_infos;
 	DEVICE_WIFI_INFO_T curr_wifi;
+	uint32_t connect_index;
 	uint64_t connecting_start_time;
 }WIFI_MANAGE_HANDLE_t;
 
@@ -664,7 +665,6 @@ static bool save_wifi_info(
 static int get_wifi_info(WIFI_MANAGE_HANDLE_t *handle)
 {
 	int i = 0;
-	static int connect_index = -1;
 	static int connect_count = 0;
 	int ret = WIFI_MANAGE_ERRNO_FAIL;
 	DEVICE_WIFI_INFO_T *wifi_info = NULL;
@@ -687,20 +687,22 @@ static int get_wifi_info(WIFI_MANAGE_HANDLE_t *handle)
 
 	for (i=0; i<MAX_WIFI_NUM; i++)
 	{
-		if (connect_index == -1)
+		if (handle->connect_index == -1)
 		{
-			connect_index = handle->wifi_infos.wifi_connect_index;
-			if (connect_index < 0 || connect_index > MAX_WIFI_NUM)
+			handle->connect_index = handle->wifi_infos.wifi_connect_index;
+			if (handle->connect_index < 0 
+				|| handle->connect_index > MAX_WIFI_NUM)
 			{
-				connect_index = 0;
+				handle->connect_index = 0;
 			}
+			connect_count = 0;
 		}
 		else
 		{
-			connect_index++;
-			if (connect_index >= MAX_WIFI_NUM)
+			handle->connect_index++;
+			if (handle->connect_index >= MAX_WIFI_NUM)
 			{
-				connect_index = 0;
+				handle->connect_index = 0;
 			}
 		}
 
@@ -711,9 +713,10 @@ static int get_wifi_info(WIFI_MANAGE_HANDLE_t *handle)
 			return WIFI_MANAGE_ERRNO_FAIL;
 		}
 		
-		if (connect_index >= 0 && connect_index < MAX_WIFI_NUM)
+		if (handle->connect_index >= 0 
+			&& handle->connect_index < MAX_WIFI_NUM)
 		{
-			wifi_info = &handle->wifi_infos.wifi_info[connect_index];
+			wifi_info = &handle->wifi_infos.wifi_info[handle->connect_index];
 			if (strlen(wifi_info->wifi_ssid) == 0)
 			{
 				continue;
@@ -722,12 +725,6 @@ static int get_wifi_info(WIFI_MANAGE_HANDLE_t *handle)
 			update_current_wifi_info(wifi_info->wifi_ssid, wifi_info->wifi_passwd);
 			break;
 		}
-	}
-
-	if (wifi_info != NULL
-		&& strlen(wifi_info->wifi_ssid) == 0)
-	{
-		return WIFI_MANAGE_ERRNO_FAIL;
 	}
 	
 	return WIFI_MANAGE_ERRNO_OK;
@@ -986,6 +983,7 @@ static void wifi_event_process(WIFI_MANAGE_HANDLE_t *handle)
 			{
 				DEBUG_LOGI(LOG_TAG, "start wifi sta mode success");
 				set_wifi_manage_status(WIFI_MANAGE_STATUS_STA_CONNECTING);
+				handle->connect_index = -1;
 			}
 			else
 			{
@@ -999,7 +997,7 @@ static void wifi_event_process(WIFI_MANAGE_HANDLE_t *handle)
 			//没有wifi信息，则获取wifi配置信息
 			if (get_wifi_info(handle) == WIFI_MANAGE_ERRNO_FAIL)
 			{
-				//set_wifi_manage_status(WIFI_MANAGE_STATUS_WIFI_CONFIG_ON);
+				set_wifi_manage_status(WIFI_MANAGE_STATUS_SMARTCONFIG_ON);
 				break;
 			}
 			
@@ -1032,6 +1030,7 @@ static void wifi_event_process(WIFI_MANAGE_HANDLE_t *handle)
 			save_wifi_info(handle->curr_wifi.wifi_ssid, handle->curr_wifi.wifi_passwd);
 			set_wifi_manage_status(WIFI_MANAGE_STATUS_STA_CONNECTED);
 			audio_play_tone_mem(FLASH_MUSIC_NETWORK_CONNECT_SUCCESS, AUDIO_TERM_TYPE_DONE);
+			handle->connect_index = -1;
             break;
         }
 		case WIFI_MANAGE_STATUS_STA_CONNECT_FAIL:
@@ -1206,6 +1205,7 @@ APP_FRAMEWORK_ERRNO_t wifi_manage_create(int task_priority)
 	}
 	memset(g_wifi_manage_handle, 0, sizeof(WIFI_MANAGE_HANDLE_t));
 	g_wifi_manage_handle->status = WIFI_MANAGE_STATUS_STA_ON;
+	g_wifi_manage_handle->connect_index = -1;
 	
 	SEMPHR_CREATE_LOCK(g_lock_wifi_manage);
 

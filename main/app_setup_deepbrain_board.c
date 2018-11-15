@@ -29,6 +29,7 @@
 #include "esp_log.h"
 #include "tcpip_adapter.h"
 #include "esp_spi_flash.h"
+#include "airkiss_lan_discovery.h"
 
 #if defined CONFIG_ESP_DEEPBRAIN_V1_0_BOARD
 
@@ -287,9 +288,15 @@ void app_startup(MediaService *service)
 	//18.mpush
 	mpush_service_create(TASK_PRIORITY_1);
 	mpush_msg_create(TASK_PRIORITY_1);
+#if AMC_WEIXIN_CLOUD_ENABLE == 1
+	//微信局域网发现
+	airkiss_lan_discovery_create(TASK_PRIORITY_1);
+#endif
 
+#if AMC_WEIXIN_CLOUD_ENABLE == 0
 	//19.bind device 
 	bind_device_create(TASK_PRIORITY_1);
+#endif
 
 	//20.memo 设置
 	memo_service_create(TASK_PRIORITY_1);

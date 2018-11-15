@@ -556,12 +556,12 @@ OTA_ERROR_NUM_T ota_update_check_fw_version(
 		DEBUG_LOGE(OTA_TAG, "sock_write http header fail");
 		goto ota_update_check_fw_version_error;
 	}
-	DEBUG_LOGE(OTA_TAG, "socket_data->header=%s\n", socket_data->str_buf);
+	//DEBUG_LOGE(OTA_TAG, "socket_data->header=%s\n", socket_data->str_buf);
 	
 	memset(socket_data->str_buf, 0, sizeof(socket_data->str_buf));
 	sock_readn_with_timeout(socket_data->sock, socket_data->str_buf, sizeof(socket_data->str_buf) - 1, 5000);
 	sock_close(socket_data->sock);
-	DEBUG_LOGE(OTA_TAG, "reply=%s\n", socket_data->str_buf);
+	//DEBUG_LOGE(OTA_TAG, "reply=%s\n", socket_data->str_buf);
 	if (http_get_error_code(socket_data->str_buf) != 200)
 	{
 		DEBUG_LOGE(OTA_TAG, "%s", socket_data->str_buf);

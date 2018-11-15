@@ -11,9 +11,7 @@
 #define LOG_TAG "DEVICE PARAMS"
 
 static DEVICE_PARAMS_CONFIG_T *g_device_params = NULL;
-static PLATFORM_AI_ACOUNTS_T *g_ai_acounts = NULL;
 static void* g_lock_flash_config = NULL;
-//static int g_asr_mode = ASR_ENGINE_TYPE_AMRNB;
 
 uint32_t get_device_params_crc(DEVICE_PARAMS_CONFIG_T *device_params)
 {
@@ -52,6 +50,8 @@ void print_basic_info(DEVICE_BASIC_INFO_T *_basic_info)
 	DEBUG_LOGI(LOG_TAG, ">>>>>>>>basic info>>>>>>>");
 	DEBUG_LOGI(LOG_TAG, "bind user id:%s", _basic_info->bind_user_id);
 	DEBUG_LOGI(LOG_TAG, "device sn:%s", _basic_info->device_sn);
+	DEBUG_LOGI(LOG_TAG, "weixin device type:%s", _basic_info->weixin_dev_type);
+	DEBUG_LOGI(LOG_TAG, "weixin device license:%s", _basic_info->weixin_dev_license);
 	DEBUG_LOGI(LOG_TAG, "<<<<<<<<<<<<<<<<<<<<<<<<<");
 }
 
@@ -183,6 +183,11 @@ int get_flash_cfg(FLASH_CONFIG_PARAMS_T _params, void *_value)
 		case FLASH_CFG_ROBOT_ID:
 		{
 			strcpy((char*)_value, DEEP_BRAIN_ROBOT_ID);
+			break;
+		}
+		case FLASH_CFG_DEVICE_LICENSE:
+		{
+			memcpy(_value, &g_device_params->basic_info, sizeof(g_device_params->basic_info));
 			break;
 		}
 		case FLASH_CFG_END:
@@ -334,6 +339,19 @@ int set_flash_cfg(FLASH_CONFIG_PARAMS_T _params, void *_value)
 //			}
 			break;
 		}
+		case FLASH_CFG_DEVICE_LICENSE:
+		{
+			if (memcmp((char*)&g_device_params->basic_info, (char*)_value, sizeof(g_device_params->basic_info)) != 0)
+			{
+				memcpy((char*)&g_device_params->basic_info, (char*)_value, sizeof(g_device_params->basic_info));
+				ret = save_device_params();
+				if (ret == DEVICE_PARAMS_ERRNO_FAIL)
+				{
+					DEBUG_LOGE(LOG_TAG, "save_device_params FLASH_CFG_DEVICE_LICENSE fail");
+				}
+			}
+			break;
+		}
 		case FLASH_CFG_END:
 		{
 			break;
@@ -356,46 +374,6 @@ void init_device_params_v1(DEVICE_PARAMS_CONFIG_T *_config)
 		WIFI_PASSWD_DEFAULT);
 }
 
-void init_default_ai_sinovoice_acount(SINOVOICE_ACOUNT_T *_sinovice_acount)
-{
-	if (_sinovice_acount == NULL)
-	{
-		return;
-	}
-
-	snprintf(_sinovice_acount->asr_url, sizeof(_sinovice_acount->asr_url), "%s", SINOVOICE_DEFAULT_ASR_URL);
-	snprintf(_sinovice_acount->tts_url, sizeof(_sinovice_acount->tts_url), "%s", SINOVOICE_DEFAULT_TTS_URL);
-	snprintf(_sinovice_acount->app_key, sizeof(_sinovice_acount->app_key), "%s", SINOVOICE_DEFAULT_APP_KEY);
-	snprintf(_sinovice_acount->dev_key, sizeof(_sinovice_acount->dev_key), "%s", SINOVOICE_DEFAULT_DEV_KEY);
-}
-
-void init_default_ai_baidu_acount(BAIDU_ACOUNT_T *_baidu_acount)
-{
-	if (_baidu_acount == NULL)
-	{
-		return;
-	}
-
-	snprintf(_baidu_acount->asr_url, sizeof(_baidu_acount->asr_url), "%s", BAIDU_DEFAULT_ASR_URL);
-	snprintf(_baidu_acount->tts_url, sizeof(_baidu_acount->tts_url), "%s", BAIDU_DEFAULT_TTS_URL);
-	snprintf(_baidu_acount->app_id, sizeof(_baidu_acount->app_id), "%s", BAIDU_DEFAULT_APP_ID);
-	snprintf(_baidu_acount->app_key, sizeof(_baidu_acount->app_key), "%s", BAIDU_DEFAULT_APP_KEY);
-	snprintf(_baidu_acount->secret_key, sizeof(_baidu_acount->secret_key), "%s", BAIDU_DEFAULT_SECRET_KEY);
-}
-
-void init_default_ai_acounts(PLATFORM_AI_ACOUNTS_T *_accounts)
-{
-	if (_accounts == NULL)
-	{
-		return;
-	}
-
-	memset(_accounts, 0, sizeof(PLATFORM_AI_ACOUNTS_T));
-	
-	init_default_ai_sinovoice_acount(&_accounts->st_sinovoice_acount);
-	init_default_ai_baidu_acount(&_accounts->st_baidu_acount);
-}
-
 DEVICE_PARAMS_ERRNO_t init_device_params(void)
 {
 	DEVICE_PARAMS_ERRNO_t ret = DEVICE_PARAMS_ERRNO_OK;
@@ -403,20 +381,12 @@ DEVICE_PARAMS_ERRNO_t init_device_params(void)
 	if (PARTITIONS_SIZE_CONFIG_1 != sizeof(DEVICE_PARAMS_CONFIG_T))
 	{
 		DEBUG_LOGE(LOG_TAG, "device params size error, [%d]!=[%d]", 
-			PARTITIONS_SIZE_CONFIG_1, sizeof(PLATFORM_AI_ACOUNTS_T));
+			PARTITIONS_SIZE_CONFIG_1, sizeof(DEVICE_PARAMS_CONFIG_T));
 		while(1);	
 	}
 
 	SEMPHR_CREATE_LOCK(g_lock_flash_config);
 
-	g_ai_acounts = memory_malloc(sizeof(PLATFORM_AI_ACOUNTS_T));
-	if (g_ai_acounts == NULL)
-	{
-		DEBUG_LOGE(LOG_TAG, "esp32_malloc g_ai_acounts fail");
-		return DEVICE_PARAMS_ERRNO_FAIL;
-	}
-	init_default_ai_acounts(g_ai_acounts);
-	
 	g_device_params = memory_malloc(sizeof(DEVICE_PARAMS_CONFIG_T));
 	if (g_device_params == NULL)
 	{
@@ -444,75 +414,16 @@ DEVICE_PARAMS_ERRNO_t init_device_params(void)
 	return ret;
 }
 
-void get_ai_acount(AI_ACOUNT_T _type, void *_out)
+bool init_default_params(void)
 {
-	if (g_ai_acounts == NULL)
+	if (g_device_params == NULL)
 	{
-		return;
+		return false;
 	}
-	
-	SEMPHR_TRY_LOCK(g_lock_flash_config);
-	switch (_type)
-	{
-		case AI_ACOUNT_BAIDU:
-		{
-			if (g_ai_acounts == NULL)
-			{
-				init_default_ai_baidu_acount((BAIDU_ACOUNT_T *)_out);
-			}
-			else
-			{
-				memcpy(_out, &g_ai_acounts->st_baidu_acount, sizeof(g_ai_acounts->st_baidu_acount));
-			}
-			break;
-		}
-		case AI_ACOUNT_SINOVOICE:
-		{
-			if (g_ai_acounts == NULL)
-			{
-				init_default_ai_sinovoice_acount((SINOVOICE_ACOUNT_T *)_out);
-			}
-			else
-			{
-				memcpy(_out, &g_ai_acounts->st_sinovoice_acount, sizeof(g_ai_acounts->st_sinovoice_acount));
-			}
-			break;
-		}
-		default:
-			break;
-	}
-	SEMPHR_TRY_UNLOCK(g_lock_flash_config);
-}
 
-void set_ai_acount(AI_ACOUNT_T _type, void *_out)
-{
-	if (g_ai_acounts == NULL)
-	{
-		return;
-	}
-	
-	SEMPHR_TRY_LOCK(g_lock_flash_config);
-	switch (_type)
-	{
-		case AI_ACOUNT_BAIDU:
-		{
-			memcpy(&g_ai_acounts->st_baidu_acount, _out, sizeof(g_ai_acounts->st_baidu_acount));
-			break;
-		}
-		case AI_ACOUNT_SINOVOICE:
-		{
-			memcpy(&g_ai_acounts->st_sinovoice_acount, _out, sizeof(g_ai_acounts->st_sinovoice_acount));
-			break;
-		}
-		case AI_ACOUNT_ALL:
-		{
-			memcpy(g_ai_acounts, _out, sizeof(PLATFORM_AI_ACOUNTS_T));
-			break;
-		}
-		default:
-			break;
-	}
-	SEMPHR_TRY_UNLOCK(g_lock_flash_config);
-}
+	init_device_params_v1(g_device_params);
+	save_device_params();
 
+	return true;
+}
 

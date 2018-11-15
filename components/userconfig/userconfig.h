@@ -44,15 +44,15 @@
 #define EN_STACK_TRACKER            0   // STACK_TRACKER can track every task stack and print the info
 #define DEVICE_SN_MAX_LEN 			18
 
-#define MODULE_DAC_DEFFERENT_OUT 	0	//差分输出
-
 #define PROJECT_NAME  "PJ-20180425-0001-dbxb-2z8qgKYsSrtLadUe"
 
 //app module control
-#define AMC_AIP_SHARED_DATA 			1//录音数据共享
-#define AMC_KEYWORD_WAKEUP_LEXIN		0//乐鑫唤醒
+#define AMC_AIP_SHARED_DATA 			1	//录音数据共享
+#define AMC_KEYWORD_WAKEUP_LEXIN		0	//乐鑫唤醒
 #define AMC_KEYWORD_WAKEUP_RENMAI		!AMC_KEYWORD_WAKEUP_LEXIN//人麦唤醒
-#define AMC_RECORD_PLAYBACK_ENABLE		0//录音回放
+#define AMC_RECORD_PLAYBACK_ENABLE		0	//录音回放
+#define AMC_WEIXIN_CLOUD_ENABLE 		0	//微信云接入
+#define ASR_FORMAT_AMR_ENABLE 			0	//使用amr格式录音进行识别
 
 //chat app module control
 #define FREE_TALK_CONTINUE_MODE				1
@@ -78,34 +78,14 @@
 *******************************************************************/
 #define PLATFORM_NAME		"Deepbrain-CHIP-ONE"
 #define DEVICE_SN_PREFIX	"DBXB"
-#define ESP32_FW_VERSION	"V1.0.0build20181024_01"
+#define ESP32_FW_VERSION	"V1.0.0build20181112"
+#if AMC_WEIXIN_CLOUD_ENABLE == 1
+#define DEEP_BRAIN_APP_ID 	"460180de15d811e7827e90b11c244b31"
+#define DEEP_BRAIN_ROBOT_ID "0dee45b6-bc7f-11e8-86f9-90b11c244b31"
+#else
 #define DEEP_BRAIN_APP_ID 	"A000000000000298"
 #define DEEP_BRAIN_ROBOT_ID "b36eca71-6d4b-11e8-b77e-801844e30cac"
-
-/******************************************************************
-//代码中所有用到的服务器地址
-*******************************************************************/
-//百度语音识别URL
-#define BAIDU_DEFAULT_ASR_URL		"http://vop.baidu.com/server_api"
-#define BAIDU_DEFAULT_TTS_URL		"http://tsn.baidu.com/text2audio"
-#define BAIDU_DEFAULT_APP_ID		"10734778"
-#define BAIDU_DEFAULT_APP_KEY		"LDxCKuuug7qolGBUBWqecR0p"
-#define BAIDU_DEFAULT_SECRET_KEY	"BAiGnLSxqGeKrg2f2HW7GCn7Nm8NoeTO"
-
-//讯飞语音识别
-#define XFL2W_DEFAULT_ASR_URL		"http://api.xfyun.cn/v1/service/v1/iat"
-#define XFL2W_DEFAULT_APP_ID		"5ad6b053"
-#define XFL2W_DEFAULT_API_KEY		"71278aebbe262a054e24b85395256916"
-
-//捷通华声语音识别URL
-#define SINOVOICE_DEFAULT_ASR_URL	"http://api.hcicloud.com:8880/asr/recognise"
-#define SINOVOICE_DEFAULT_TTS_URL	"http://api.hcicloud.com:8880/tts/SynthText"
-#define SINOVOICE_DEFAULT_APP_KEY	"745d54c3"
-#define SINOVOICE_DEFAULT_DEV_KEY	"ba1a617ff498135a324a109c89db2823"
-
-//云知声账号
-#define UNISOUND_DEFAULT_APP_KEY	"gnhsr6flozejxxn4floxbny6nudx5dsmlhilo3qk"
-#define UNISOUND_DEFAULT_USER_ID	"YZS15021927852069956"
+#endif
 
 //OTA升级服务器地址
 #define OTA_UPDATE_SERVER_URL		"http://file.yuyiyun.com:2088/ota/PJ-20180425-0001-dabaoxiaobei/idf-3.0/version.txt"
@@ -113,13 +93,6 @@
 #define OTA_UPDATE_SERVER_URL_TEST	"http://file.yuyiyun.com:2088/ota/test/PJ-20180425-0001-dabaoxiaobei/idf-3.0/version.txt"
 //deepbrain open api 地址
 #define DeepBrain_TEST_URL          "http://api.deepbrain.ai:8383/open-api/service"
-
-/******************************************************************
-//产品功能模块控制
-*******************************************************************/
-#define DEBUG_RECORD_PCM 			0//record pcm data, used to debug pcm
-#define USED_ARRAY_MUSIC            0   // 0:disable array music table, 1: enable array music table.
-// #define ESP_AUTO_PLAY                   // Define ESP_AUTO_PLAY will be auto select audio codec.
 
 /******************************************************************
 //任务优先级定义,数字越大，优先级越高

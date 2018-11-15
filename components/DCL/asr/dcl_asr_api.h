@@ -45,6 +45,7 @@ typedef struct DCL_ASR_INPUT_PARAMS_t
 	DCL_ASR_MODE_t asr_mode;				//语音识别模式
 	DCL_AUTH_PARAMS_t dcl_auth_params; 		//权限认证参数
 	uint32_t http_send_timeout;				//http发送超时，0~10000毫秒,默认2500毫秒
+	DCL_RECORD_FORMAT_t asr_rec_format;		//录音数据格式
 }DCL_ASR_INPUT_PARAMS_t;
 
 /* dcl asr http buffer*/

@@ -1007,6 +1007,23 @@ static void wifi_config(void *ref, int argc, char *argv[])
 	app_send_message(APP_NAME_KEYBOARD_SERVICE, APP_NAME_KEYBOARD_SERVICE, APP_EVENT_KEYBOARD_EVENT, &key_event, sizeof(key_event));
 }
 
+static void reset_params(void *ref, int argc, char *argv[])
+{
+	ESP_LOGI(TERM_TAG, "reset_params now");
+
+	if (init_default_params())
+	{
+		ESP_LOGI(TERM_TAG, "init_default_params success");
+	}
+	else
+	{
+		ESP_LOGE(TERM_TAG, "init_default_params failed");
+	}
+
+	return;
+}
+
+
 const ShellCommand command[] = {
     //system
     {"------system-------", NULL},
@@ -1075,6 +1092,7 @@ const ShellCommand command[] = {
     {"rawread", rawread},
     {"rawwrite", rawwrite},
 
+	{"reset_params", reset_params},
     {"getsonginfo", getPlayingSongInfo},
 	{"otamode", set_ota_mode},
 	{"keyword_wakeup", keyword_wakeup},

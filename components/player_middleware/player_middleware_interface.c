@@ -626,6 +626,15 @@ AUDIO_PLAY_ERROR_CODE_t audio_play_tone_with_cb(
 		return AUDIO_PLAY_ERROR_CODE_FAIL;
 	}
 
+	if (strstr(audio_url, "file.api.weixin.qq.com"))
+	{
+		EspAudioSetDecoder("AMR");
+	}
+	else
+	{
+		EspAudioSetDecoder(NULL);
+	}
+	
 	if (EspAudioTonePlay(audio_url, tem_type, 1) != AUDIO_ERR_NO_ERROR)
 	{
 		DEBUG_LOGE(LOG_TAG, "EspAudioTonePlay failed");
@@ -694,6 +703,15 @@ AUDIO_PLAY_ERROR_CODE_t audio_play_music_with_cb(
 	if (!ret)
 	{
 		return AUDIO_PLAY_ERROR_CODE_FAIL;
+	}
+
+	if (strstr(audio_url, "file.api.weixin.qq.com"))
+	{
+		EspAudioSetDecoder("AMR");
+	}
+	else
+	{
+		EspAudioSetDecoder(NULL);
 	}
 	
 	if (EspAudioPlay(audio_url, 0) != AUDIO_ERR_NO_ERROR)

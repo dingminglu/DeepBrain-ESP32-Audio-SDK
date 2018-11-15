@@ -56,6 +56,7 @@ typedef enum MPUSH_STATUS_T
 {
 	MPUSH_STAUTS_IDEL = 0,
 	MPUSH_STAUTS_INIT,
+	MPUSH_STAUTS_UPDATE_DEVICE_INFO,
 	MPUSH_STAUTS_GET_SERVER_LIST,
 	MPUSH_STAUTS_GET_OFFLINE_MSG,
 	MPUSH_STAUTS_CONNECTING,
@@ -88,19 +89,20 @@ typedef struct MPUSH_MSG_INFO_t
 typedef struct MPUSH_SERVICE_HANDLER_t
 {
 	MPUSH_STATUS_T status;
-	sock_t	server_sock;								// server socket
-	char str_server_list_url[128];						// server address
-	char str_public_key[1024];				// public key
-	char str_comm_buf[1024*30];				// commucation buffer
-	char str_comm_buf1[1024*30];			// 
-	char str_recv_buf[1024*20];				// recv buffer
-	uint8_t str_push_msg[1024*10];			// recv push msg
+	sock_t	server_sock;					// server socket
+	char str_server_list_url[128];			// server address
+	char str_comm_buf[1024*5];				// commucation buffer
+	char str_recv_buf[1024*5];				// recv buffer
+	uint8_t str_push_msg[1024*5];			// recv push msg
 	MPUSH_MSG_CONFIG_T msg_cfg;
 	
 	MPUSH_CLIENT_MSG_INFO_t msg_info;
 	
 	//dcl license result
 	DCL_DEVICE_LICENSE_RESULT_t dcl_license;
+
+	//device license
+	DEVICE_BASIC_INFO_T device_license;
 
 	//dcl auth params
 	DCL_AUTH_PARAMS_t auth_params;

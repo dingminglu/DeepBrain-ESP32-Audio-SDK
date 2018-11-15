@@ -62,7 +62,7 @@ typedef enum
 
 typedef struct
 {
-	uint8_t str_device_id[32];
+	uint8_t str_device_id[64];
 	uint8_t str_os_name[8];
 	uint8_t str_os_version[8];
 	uint8_t str_client_version[8];

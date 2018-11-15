@@ -2,6 +2,7 @@
 #define MEMO_SERVICE_H
 
 #include "app_config.h"
+#include "dcl_update_time.h"
 
 #define MEMO_EVEVT_MAX 10
 
@@ -52,6 +53,9 @@ typedef struct
 	uint32_t memo_remind_count;//闹铃提醒次数
 	uint32_t memo_remind_timestamp;//提醒时间戳
 	char memo_content[512];			//闹铃提醒内容
+	
+	//dcl auth params
+	DCL_AUTH_PARAMS_t auth_params;
 }MEMO_SERVICE_HANDLE_T;
 
 /**

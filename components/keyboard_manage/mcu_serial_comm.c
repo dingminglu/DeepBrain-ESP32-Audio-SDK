@@ -144,7 +144,7 @@ static void mcu_serial_cmd_process(unsigned char *_data, size_t _data_len)
 			i_bat_vol = i_bat_vol << 8;
 			i_bat_vol += _data[5];
 			f_bat_vol = (3.3/4095)*i_bat_vol;
-			DEBUG_LOGE(LOG_TAG, "battery vol:i_bat_vol = %d, f_bat_vol=%.2f", i_bat_vol, f_bat_vol);
+			//DEBUG_LOGE(LOG_TAG, "battery vol:i_bat_vol = %d, f_bat_vol=%.2f", i_bat_vol, f_bat_vol);
 			set_battery_voltage(f_bat_vol*2);
 			break;
 		}
@@ -237,8 +237,16 @@ static void mcu_serial_parse(
 static void mcu_serial_process(void)
 {
 	uint8_t recv_buff[32] = {0};
+	
+	if (g_uart_comm_handler == NULL)
+	{
+		DEBUG_LOGE(LOG_TAG, "g_uart_comm_handler is NULL");
+		return;
+	}
 
+	SEMPHR_TRY_LOCK(g_uart_comm_handler->mutex_lock);
 	int len = uart_read_bytes(SERIAL_UART_NUM, recv_buff, sizeof(recv_buff), 20 / portTICK_RATE_MS);
+	SEMPHR_TRY_UNLOCK(g_uart_comm_handler->mutex_lock);
 	if (len <= 0)
 	{
 		return;

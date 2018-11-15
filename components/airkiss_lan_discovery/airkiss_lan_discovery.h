@@ -13,31 +13,34 @@
  * permissions and limitations under the License.
  */
 
-#ifndef TIME_INTERFACE_H
-#define TIME_INTERFACE_H
+#ifndef AIRKISS_LAN_DISCOVERY_H
+#define AIRKISS_LAN_DISCOVERY_H
 
-#include "ctypes_interface.h"
+#include <stdio.h>
+#include <string.h>
+#include "app_config.h"
 
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif /* C++ */
 
 /**
- * get current time in ms
- *
- * @param void
- * @return current time in ms
+ * @brief  wechat cloud service create
+ * @param  task_priority, priority
+ * @return See in APP_FRAMEWORK_ERRNO_t
  */
-uint64_t get_time_of_day(void);
+APP_FRAMEWORK_ERRNO_t airkiss_lan_discovery_create(int task_priority);
 
-void get_time_stamp_string(
-	uint8_t * str_time, 
-	const uint32_t str_time_len);
-
+/**
+ * @brief  wechat cloud service delete
+ * @return See in APP_FRAMEWORK_ERRNO_t
+ */
+APP_FRAMEWORK_ERRNO_t airkiss_lan_discovery_delete(void);
 
 #ifdef __cplusplus
-}
-#endif
+} /* extern "C" */	
+#endif /* C++ */
 
-#endif //TIME_INTERFACE_H
+#endif /* AIRKISS_LAN_DISCOVERY_H */
+
 

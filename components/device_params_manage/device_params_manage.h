@@ -10,7 +10,7 @@
 #include "memo_service.h"
 
 #define MAX_WIFI_NUM 			5 
-#define DEVICE_PARAMS_VERSION_1 0x20180921
+#define DEVICE_PARAMS_VERSION_1 0x20181107
 
 typedef enum DEVICE_PARAMS_ERRNO_t
 {
@@ -37,6 +37,7 @@ typedef enum
 	FLASH_CFG_ASR_MODE,
 	FLASH_CFG_APP_ID,
 	FLASH_CFG_ROBOT_ID,
+	FLASH_CFG_DEVICE_LICENSE,
 	FLASH_CFG_END
 }FLASH_CONFIG_PARAMS_T;
 
@@ -75,9 +76,11 @@ typedef struct
 //total 512 bytes
 typedef struct
 {
-	char device_sn[32];		//device serial num
-	char bind_user_id[32];	//user id,use to bind user
-	char res[448];			//res
+	char device_sn[64];				//device serial num
+	char bind_user_id[64];			//user id,use to bind user
+	char weixin_dev_type[64];		//微信设备类型
+	char weixin_dev_license[256];	//微信设备许可
+	char res[64];					//res
 }DEVICE_BASIC_INFO_T;
 
 //total size 4*1024 bytes,must 4 bytes align
@@ -109,29 +112,6 @@ typedef struct
 	//Remaining
 	uint8_t res2[2240];
 }DEVICE_PARAMS_CONFIG_T;
-
-typedef struct
-{
-	char asr_url[64];
-	char tts_url[64];
-	char app_key[64];
-	char dev_key[64];
-}SINOVOICE_ACOUNT_T;
-
-typedef struct
-{
-	char asr_url[64];
-	char tts_url[64];
-	char app_id[16];
-	char app_key[64];
-	char secret_key[64];
-}BAIDU_ACOUNT_T;
-
-typedef struct
-{
-	SINOVOICE_ACOUNT_T st_sinovoice_acount;
-	BAIDU_ACOUNT_T st_baidu_acount;
-}PLATFORM_AI_ACOUNTS_T;
 
 /**
  * @brief  print wifi infos 
@@ -208,28 +188,6 @@ int set_flash_cfg(FLASH_CONFIG_PARAMS_T _params, void *_value);
 void init_device_params_v1(DEVICE_PARAMS_CONFIG_T *_config);
 
 /**
- * @brief  init default ai sinovoice acount 
- *  
- * @param  [out]_sinovice_acount
- * @return none
- */
-void init_default_ai_sinovoice_acount(SINOVOICE_ACOUNT_T *_sinovice_acount);
-
-/**
- * @brief  init default ai baidu acount 
- * @param  [out]_baidu_acount
- * @return none
- */
-void init_default_ai_baidu_acount(BAIDU_ACOUNT_T *_baidu_acount);
-
-/**
- * @brief  init default ai acounts
- * @param  [out]_accounts
- * @return none
- */
-void init_default_ai_acounts(PLATFORM_AI_ACOUNTS_T *_accounts);
-
-/**
  * @brief  remove pcm queue 
  * @param  none
  * @return device parameters errno
@@ -251,6 +209,13 @@ void get_ai_acount(AI_ACOUNT_T _type, void *_out);
  * @return none
  */
 void set_ai_acount(AI_ACOUNT_T _type, void *_out);
+
+/**
+ * @brief  init default params
+ * @param  [in] void
+ * @return none
+ */
+bool init_default_params(void);
 
 #endif
 

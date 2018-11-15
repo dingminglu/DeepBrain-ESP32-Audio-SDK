@@ -24,10 +24,13 @@
 #include "memory_interface.h"
 #include "time_interface.h"
 
-#define CONNECTION_KEEP_ALIVE "Keep-Alive"
-#define CONNECTION_CLOSE      "Close"
-#define X_NLP_SWITCH_YES      "yes"
-#define X_NLP_SWITCH_NO       "no"
+#define CONNECTION_KEEP_ALIVE 	"Keep-Alive"
+#define CONNECTION_CLOSE      	"Close"
+#define X_NLP_SWITCH_YES      	"yes"
+#define X_NLP_SWITCH_NO       	"no"
+
+const char *REC_FORMAT_ADPCM = "adpcm16k16bit";
+const char *REC_FORMAT_AMR	= "amr";
 
 static const char *TAG_LOG = "[DCL ASR]";
 
@@ -153,6 +156,23 @@ static DCL_ERROR_CODE_t dcl_asr_make_packet(
 	DCL_ASR_ENCODE_BUFFER_t *encode_buffer = &asr_handle->encode_buffer;
 	DCL_ASR_INPUT_PARAMS_t *asr_params = &asr_handle->asr_params;
 	DCL_AUTH_PARAMS_t *dcl_auth_params = &asr_params->dcl_auth_params; 
+	char *record_format = NULL;
+
+	switch (asr_params->asr_rec_format)
+	{
+		case DCL_RECORD_FORMAT_16K_PCM:
+		{
+			record_format = REC_FORMAT_ADPCM;
+			break;
+		}
+		case DCL_RECORD_FORMAT_8K_AMR:
+		{
+			record_format = REC_FORMAT_AMR;
+			break;
+		}
+		default:
+			break;
+	}
 	
 	if (http_buffer->udid[0] == 0) 
 	{
@@ -201,7 +221,7 @@ static DCL_ERROR_CODE_t dcl_asr_make_packet(
 			"Key: %s\r\n"
 			"Nonce: %s\r\n"
 			"x-udid: %s\r\n"
-			"x-task-config: audioformat=adpcm16k16bit,framesize=%zu,lan=%d,vadSeg=500,index=%d\r\n"
+			"x-task-config: audioformat=%s,framesize=%zu,lan=%d,vadSeg=500,index=%d,simpleResponse=true\r\n"
 			"x-nlp-switch: %s\r\n"
 			"x-user-id: %s\r\n"
 			"x-device-id: %s\r\n"
@@ -218,7 +238,10 @@ static DCL_ERROR_CODE_t dcl_asr_make_packet(
 			dcl_auth_params->str_robot_id, 
 			http_buffer->nonce, 
 			http_buffer->udid, 
-			encode_buffer->adpcm_len, asr_params->asr_lang, http_buffer->index, 
+			record_format,
+			encode_buffer->adpcm_len, 
+			asr_params->asr_lang, 
+			http_buffer->index, 
 			asr_mode,
 			dcl_auth_params->str_user_id, 
 			dcl_auth_params->str_device_id, 
@@ -452,19 +475,43 @@ DCL_ERROR_CODE_t dcl_asr_audio_write(
 		DEBUG_LOGE(TAG_LOG, "socket already closed");
 		return DCL_ERROR_CODE_NETWORK_UNAVAILABLE;
 	}
-	
-	//ADPCM编码
-	if (dcl_asr_pcm_encode(asr_handle, pcm_data, pcm_len) != DCL_ERROR_CODE_OK)
-	{
-		DEBUG_LOGE(TAG_LOG, "dcl_asr_pcm_encode failed");
-		return DCL_ERROR_CODE_ASR_ENCODE_FAIL;
-	}
 
-	//没有数据，则不需要发送
-	if (encode_buffer->adpcm_len == 0 
-		&& http_buffer->index >= 0)
+	switch (asr_params->asr_rec_format)
 	{
-		return DCL_ERROR_CODE_OK;
+		//pcm 编码为 adpcm数据
+		case DCL_RECORD_FORMAT_16K_PCM:
+		{
+			//ADPCM编码
+			if (dcl_asr_pcm_encode(asr_handle, pcm_data, pcm_len) != DCL_ERROR_CODE_OK)
+			{
+				DEBUG_LOGE(TAG_LOG, "dcl_asr_pcm_encode failed");
+				return DCL_ERROR_CODE_ASR_ENCODE_FAIL;
+			}
+
+			//没有数据，则不需要发送
+			if (encode_buffer->adpcm_len == 0 
+				&& http_buffer->index >= 0)
+			{
+				return DCL_ERROR_CODE_OK;
+			}
+			break;
+		}
+		case DCL_RECORD_FORMAT_8K_AMR:
+		{
+			if (pcm_data != NULL 
+				&& pcm_len > 0)
+			{
+				encode_buffer->adpcm_len = pcm_len > sizeof(encode_buffer->adpcm) ? sizeof(encode_buffer->adpcm) : pcm_len;
+				memcpy(encode_buffer->adpcm, pcm_data, encode_buffer->adpcm_len);
+			}
+			else
+			{
+				encode_buffer->adpcm_len = 0;
+			}
+			break;
+		}
+		default:
+			break;
 	}
 
 	//组包
@@ -701,6 +748,11 @@ DCL_ERROR_CODE_t dcl_asr_set_param(
 		case DCL_ASR_PARAMS_INDEX_AUTH_PARAMS:
 		{
 			asr_param->dcl_auth_params = *((DCL_AUTH_PARAMS_t*)param);
+			break;
+		}
+		case DCL_ASR_PARAMS_INDEX_RECORD_FORMAT:
+		{
+			asr_param->asr_rec_format = *((DCL_RECORD_FORMAT_t*)param);;
 			break;
 		}
 		default:

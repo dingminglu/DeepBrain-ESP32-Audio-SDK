@@ -28,3 +28,18 @@ uint64_t get_time_of_day(void)
 	return (cur_time.tv_sec*1000 + cur_time.tv_usec/1000);
 }
 
+void get_time_stamp_string(
+	uint8_t * str_time, 
+	const uint32_t str_time_len)
+{
+	time_t tNow = time(NULL);   
+    struct tm tmNow = { 0 };  
+	
+    localtime_r(&tNow, &tmNow);//localtime_r为可重入函数，不能使用localtime  
+    snprintf((char *)str_time, str_time_len, "%04d-%02d-%02dT%02d:%02d:%02d", 
+		tmNow.tm_year + 1900, tmNow.tm_mon + 1, tmNow.tm_mday,
+		tmNow.tm_hour + 8, tmNow.tm_min, tmNow.tm_sec); 
+
+	return;
+}
+

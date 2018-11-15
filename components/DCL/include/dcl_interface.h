@@ -72,6 +72,13 @@ typedef enum DCL_ASR_MODE_t
 }DCL_ASR_MODE_t;
 
 /* dcl translate mode */
+typedef enum DCL_RECORD_FORMAT_t
+{
+	DCL_RECORD_FORMAT_16K_PCM = 0,	//pcm,16k,16bit,1 chanel
+	DCL_RECORD_FORMAT_8K_AMR,	//amr,8k,16bit,1 chanel
+}DCL_RECORD_FORMAT_t;
+
+/* dcl record format */
 typedef enum DCL_TRANSLATE_MODE_t
 {
 	DCL_TRANSLATE_MODE_CH_AND_EN,	//中英互译
@@ -79,12 +86,14 @@ typedef enum DCL_TRANSLATE_MODE_t
 	DCL_TRANSLATE_MODE_EN_TO_CH		//英译中
 }DCL_TRANSLATE_MODE_t;
 
+
 /*DCL asr input params index*/
 typedef enum DCL_ASR_PARAMS_INDEX_t
 {
 	DCL_ASR_PARAMS_INDEX_LANGUAGE = 0,	//语音识别语言,默认DP_ASR_LANG_CHINESE
 	DCL_ASR_PARAMS_INDEX_MODE,			//语音识别模式,默认DCL_ASR_MODE_ASR
 	DCL_ASR_PARAMS_INDEX_AUTH_PARAMS,	//权限认证参数,必须设置
+	DCL_ASR_PARAMS_INDEX_RECORD_FORMAT,	//录音格式
 }DCL_ASR_PARAMS_INDEX_t;
 
 /*DCL auth params*/

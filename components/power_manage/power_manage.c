@@ -245,6 +245,7 @@ static void power_event_callback(void *app, APP_EVENT_MSG_t *msg)
 	uint32_t shallow_sleep_sec = 0;
 	uint32_t remind_count = 0;
 	static uint32_t sleep_timestamp = 0;
+	uint8_t str_time[64] = {0};
 	
 	switch (msg->event)
 	{
@@ -252,8 +253,10 @@ static void power_event_callback(void *app, APP_EVENT_MSG_t *msg)
 		{
 			//获取当前电池电压
 			battery_vol = get_battery_voltage();
-   			DEBUG_LOGI(PRINT_TAG, "Battery vol = %.2fv", battery_vol);			
-			DEBUG_LOGI(PRINT_TAG, "free mem size:inter[%dkb],psram[%dkb]", 
+   			DEBUG_LOGI(PRINT_TAG, "Battery vol = %.2fv", battery_vol);	
+			get_time_stamp_string(str_time, sizeof(str_time));
+			DEBUG_LOGI(PRINT_TAG, "[%s],free mem size:inter[%dkb],psram[%dkb]", 
+				str_time,
 				heap_caps_get_free_size(MALLOC_CAP_8BIT|MALLOC_CAP_INTERNAL)/1024, 
 				xPortGetFreeHeapSize()/1024);
 #if 0
