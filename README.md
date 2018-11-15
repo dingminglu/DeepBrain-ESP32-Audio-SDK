@@ -23,7 +23,7 @@ ESP32 Audio SDK with Deepbrain Could
 - 该sdk匹配了我们的一套开发板，需要的用户请邮件联系jacky@deepbrain.ai购买。
 
 ## DeepBrain api doc
-- [DeepBrain云平台接入移植说明] (https://github.com/dingminglu/DeepBrain-ESP32-Audio-SDK/blob/master/docs/DeepbrainCouldAPI/DeepBrain%E4%BA%91%E5%B9%B3%E5%8F%B0%E6%8E%A5%E5%85%A5%E7%A7%BB%E6%A4%8D%E8%AF%B4%E6%98%8E.doc)
+- [DeepBrain云平台接入移植说明](https://github.com/dingminglu/DeepBrain-ESP32-Audio-SDK/blob/master/docs/DeepbrainCouldAPI/DeepBrain%E4%BA%91%E5%B9%B3%E5%8F%B0%E6%8E%A5%E5%85%A5%E7%A7%BB%E6%A4%8D%E8%AF%B4%E6%98%8E.doc)
 - [在线API文档](https://api.deepbrain.ai/asciidoc/deep-brain-api/index.html)
 - [REST API文档](https://github.com/dingminglu/DeepBrain-ESP32-Audio-SDK/blob/master/docs/DeepbrainCouldAPI/DeepBrain%20API%E8%AF%B4%E6%98%8E.pdf)
 - [设备SDK API文档](https://github.com/dingminglu/DeepBrain-ESP32-Audio-SDK/blob/master/docs/DeepbrainCouldAPI/ESP32%E6%97%A0%E7%BA%BF%E9%9F%B3%E9%A2%91SDK%E6%8E%A5%E5%8F%A3%E8%AF%B4%E6%98%8E%E6%96%87%E6%A1%A3.doc)
